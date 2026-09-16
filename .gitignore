@@ -1,6 +1,22 @@
+# Build artifacts
 target/
 *.pdb
+*.lib
+*.a
+*.so
+*.dylib
+
+# OS files
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
 *.swp
 *.swo
 *~
+*.vscode/
+.idea/
+
+# Wordlists (too large for repo)
+wordlists/*.txt

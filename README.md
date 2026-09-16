@@ -1,6 +1,15 @@
 # CF-VOID v5.0
 
+[![Release](https://img.shields.io/github/v/release/ownerVortex525-beep/Open-void?label=Release&style=flat-square&color=red)](https://github.com/ownerVortex525-beep/Open-void/releases)
+[![License](https://img.shields.io/badge/License-Educational%20Use%20Only-orange?style=flat-square)](LICENSE)
+[![Rust](https://img.shields.io/badge/Rust-1.75+-orange?style=flat-square&logo=rust)](https://www.rust-lang.org/)
+[![Platform](https://img.shields.io/badge/Platform-Kali%20%7C%20Termux%20%7C%20Ubuntu%20%7C%20Windows%20%7C%20macOS-lightseagreen?style=flat-square)](https://github.com/ownerVortex525-beep/Open-void)
+
 **CF-VOID** is a comprehensive offensive security platform built in Rust, designed for penetration testing and security research. It provides a complete toolkit for ethical hackers, security researchers, and red teams.
+
+---
+
+![CF-VOID Banner](assets/cf-void-logo.txt)
 
 ## Key Features
 
@@ -21,13 +30,27 @@
 
 ## Quick Start
 
+### Installation
+
+**From Source:**
 ```bash
-# Build from source
+git clone https://github.com/ownerVortex525-beep/Open-void.git
+cd Open-void
 cargo build --release
+cp target/release/cf-void /usr/local/bin/cf-void
+```
 
-# Install
-cp target/release/cf-void /usr/local/bin/
+**From Releases:**
+```bash
+# Download latest release
+curl -L https://github.com/ownerVortex525-beep/Open-void/releases/latest/download/cf-void-linux.tar.gz | tar xz
+chmod +x cf-void-linux
+cp cf-void-linux /usr/local/bin/cf-void
+```
 
+### Usage
+
+```bash
 # Interactive shell
 cf-void
 
@@ -45,7 +68,7 @@ cf-void -u https://target.com --fuzz
 # Interactive TUI
 cf-void --tui
 
-# AI attack
+# AI attack (requires API key in ~/.cf-void/keys.toml)
 cf-void -u https://target.com --ai --ai-provider openai
 
 # Generate phishing page
@@ -80,46 +103,61 @@ cf-void -s
 
 ```
 └─₹ help          Show comprehensive help with all commands
-└─₹ ai menu       Interactive AI attack menu
-└─₹ ai config     Configure AI providers (API keys)
-└─₹ ai attack     Run AI-powered attack on target
-└─₹ ai chat       Chat with AI assistant
-└─₹ ai providers  List available AI providers
-└─₹ ai logs       View AI activity logs
-└─₹ ai chain      Build custom AI attack chain
-└─₳ scan -u <url> --xss    Scan target for XSS
-└─₳ exploit -u <url>       Run exploits
-└─₳ payload --reverse-shell  Generate reverse shell
-└─₳ phish --phish-template   Generate phishing page
-└─₳ list-templates           List all phishing templates
-└─₳ list-emails              List email templates
-└─₳ modules                 List all modules
-└─₳ stats                   Show tool statistics
-└─₳ tui                     Launch interactive TUI
+└─₳ ai menu       Interactive AI attack menu
+└─₳ ai config     Configure AI providers (API keys)
+└─₳ ai attack     Run AI-powered attack on target
+└─₳ ai chat       Chat with AI assistant
+└─₳ ai providers  List available AI providers
+└─₳ ai logs       View AI activity logs
+└─₳ ai chain      Build custom AI attack chain
+└─► scan -u <url> --xss    Scan target for XSS
+└─► exploit -u <url>       Run exploits
+└─► payload --reverse-shell  Generate reverse shell
+└─► phish --phish-template   Generate phishing page
+└─► list-templates           List all phishing templates
+└─► list-emails              List email templates
+└─► modules                 List all modules
+└─► stats                   Show tool statistics
+└─► tui                     Launch interactive TUI
 └─₯ exit                    Exit shell
 ```
 
 ## Short CLI Aliases
 
-| Short Flag | Long Flag | Description |
-|-----------|-----------|-------------|
-| `-S` | `--sqli` | SQL Injection scan |
-| `-Z` | `--xss` | Cross-Site Scripting |
-| `-L` | `--lfi` | Local File Inclusion |
-| `-R` | `--reverse-shell` | Reverse shell payload |
-| `-A` | `--apk-payload` | APK payload generator |
-| `-E` | `--exe-payload` | Windows EXE payload |
-| `-w` | `--wordlist` | Wordlist generator |
-| `-p` | `--proxy` | Proxy configuration |
-| `-b` | `--brute-force` | Brute force attack |
-| `-n` | `--listen` | Start listener |
-| `-s` | `--sessions` | List sessions |
-| `-L` | `--list-templates` | List phishing templates |
-| `-M` | `--list-emails` | List email templates |
+| Short Flag | Long Flag           | Description                          |
+|-----------|--------------------|--------------------------------------|
+| `-S`      | `--sqli`           | SQL Injection scan                   |
+| `-Z`      | `--xss`            | Cross-Site Scripting                 |
+| `-L`      | `--lfi`            | Local File Inclusion                 |
+| `-R`      | `--reverse-shell`  | Reverse shell payload                |
+| `-A`      | `--apk-payload`    | APK payload generator                |
+| `-E`      | `--exe-payload`    | Windows EXE payload                  |
+| `-w`      | `--wordlist`       | Wordlist generator                   |
+| `-p`      | `--proxy`          | Proxy configuration                  |
+| `-b`      | `--brute-force`    | Brute force attack                   |
+| `-n`      | `--listen`         | Start listener                       |
+| `-s`      | `--sessions`       | List sessions                        |
+| `-L`      | `--list-templates` | List phishing templates              |
+| `-M`      | `--list-emails`    | List email templates                 |
 
-## Phishing Templates
+## Modules
 
-### Web Page Templates (43+)
+### Web Scanners (40+)
+SQLi, Blind SQLi, XSS, Reflected XSS, Stored XSS, LFI, RFI, CMDi, SSTI, SSRF, XXE, IDOR, GraphQL, CORS, Open Redirect, Header Injection, JWT, Deserialization, File Upload, HTTP Smuggling, Race Condition, WebSocket, CRLF Injection, Security Headers, Cookie Security, Cache Poisoning, DNS Rebinding, Password Policy, Directory Listing, API Scan, Cloud Misconfig, Subdomain Takeover, Subdomain Enumeration, Parameter Brute-force, JS Endpoint Discovery, robots.txt Discovery, Git Exposure, AWS Bucket, Backup File, WordPress, Drupal, Joomla
+
+### Exploits (20+)
+SQLi (UNION, Boolean, Time-based), XSS (Reflected, DOM, Stored), LFI (Path traversal, include), CMDi, SSRF, JWT (alg-none, key confusion), GraphQL (Introspection, IDOR), Deserialization (PHP, Python, Java), HTTP Smuggling, MS17-010, Redis (unauth), Docker (socket), Jenkins (script), Tomcat (manager), WordPress (plugin/user enumeration), Drupal (geddon), Apache (struts), Nginx (path traversal), MongoDB (no-auth), CouchDB (no-auth), ElasticSearch (no-auth)
+
+### Payload Generators (50+)
+- **Windows**: exe, dll, hta, msi, powershell, VBA, COM objects, LOLBins
+- **Linux**: ELF binaries, cron jobs, systemd services, bash reverse shells, Python, Ruby, Perl
+- **macOS**: Mach-O binaries, AppleScript, Python, Bash reverse shells
+- **Android**: APK with Meterpreter, nosleep, auto-start
+- **Web**: JavaScript XSS, PHP webshells, ASP, ASPX, JSP, Python CGI
+- **Evasion**: AV bypass, AMSI bypass, ETW bypass, sandbox detection
+
+### Phishing Templates (43+)
+
 **Social Engineering:** birthday, love, offer, card, prize, wedding, baby_shower, christmas, halloween, valentine, fathers_day, mothers_day, new_year, thanksgiving, easter, resume, job_offer, invoice, shipping, tax, bank, crypto, social_media, cloud_storage, meeting
 
 **Authentication:** login, google, facebook, twitter, instagram, github, microsoft, apple, yahoo, linkedin, netflix, amazon, paypal, coinbase, dropbox, salesforce, jira, slack, zoom, twitch, reddit, snapchat, microsoft-outlook, office-365, github-enterprise, aws, azure, digitalocean, server-login
@@ -127,11 +165,25 @@ cf-void -s
 ### Email Templates (11)
 birthday, love, offer, card, prize, invoice, shipping, bank, crypto, tax, meeting
 
+## TUI Interface
+
+Access the full TUI interface with `cf-void --tui`:
+
+| Tab | Description |
+|-----|-------------|
+| Dashboard | Tool stats, module list, recent activity |
+| Scanning | Web scanners, network, fuzzing with progress |
+| Terminal | Live shell with command history |
+| Payloads | Interactive payload builders for all platforms |
+| AI | AI attack menu, chat, provider config, logs |
+| Device | System info, platform detection |
+| Config | API keys, settings, proxy |
+
 ## AI Providers
 
 | Provider | Models | Key Required |
 |----------|--------|--------------|
-| OpenAI | GPT-4o, GPT-4-turbo | Yes |
+| OpenAI | GPT-4o, GPT-4-turbo, o1 | Yes |
 | Anthropic | Claude-3-Opus, Claude-3.5-Sonnet | Yes |
 | Gemini | Gemini-2.0-flash, Gemini-1.5-pro | Yes |
 | Groq | Llama-3-70B, Mixtral-8x7B | Yes |
@@ -141,25 +193,25 @@ birthday, love, offer, card, prize, invoice, shipping, bank, crypto, tax, meetin
 | Ollama | Local models (phi3, mistral, llama3) | No |
 | Custom | Any OpenAI-compatible endpoint | Optional |
 
-## TUI Interface
+Configure API keys in `~/.cf-void/keys.toml`:
+```toml
+[openai]
+api_key = "sk-your-key-here"
+model = "gpt-4o"
+```
 
-Access the full TUI interface with `cf-void --tui`:
-
-- **Dashboard** - Tool stats, module list, recent activity
-- **Scanning** - Web scanners, network, fuzzing with progress
-- **Terminal** - Live shell with command history
-- **Payloads** - Interactive payload builders for all platforms
-- **AI** - AI attack menu, chat, provider config, logs
-- **Device** - System info, platform detection
-- **Config** - API keys, settings, proxy
-
-## Build & Installation
+## Build & Development
 
 ```bash
 git clone https://github.com/ownerVortex525-beep/Open-void.git
 cd Open-void
 cargo build --release
-cp target/release/cf-void /usr/local/bin/cf-void
+```
+
+For development/debug builds:
+```bash
+cargo build
+cargo run -- -u https://target.com --web-all
 ```
 
 ## Requirements
@@ -168,7 +220,14 @@ cp target/release/cf-void /usr/local/bin/cf-void
 - Cargo
 - (Optional) API keys for AI providers
 - (Optional) Python for some payload modules
-- (Optional) Metasploit, Nmap for advanced scanning
+- (Optional) Nmap for network scanning
+- (Optional) Metasploit for exploit modules
+
+## Documentation
+
+- [Wiki](https://github.com/ownerVortex525-beep/Open-void/wiki)
+- [Releases](https://github.com/ownerVortex525-beep/Open-void/releases)
+- [Issues](https://github.com/ownerVortex525-beep/Open-void/issues)
 
 ## License
 
@@ -176,4 +235,5 @@ This tool is for educational and authorized security testing purposes only. The 
 
 ## Author
 
-**CYBER-FORCE** - IND 'CYBER-FORCE'
+**CYBER-FORCE** - IND 'CYBER-FORCE'  
+[![GitHub](https://img.shields.io/badge/GitHub-ownerVortex525--beep-181718?style=for-the-badge&logo=github)](https://github.com/ownerVortex525-beep)

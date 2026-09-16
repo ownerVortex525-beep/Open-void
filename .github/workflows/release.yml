@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    name: Build CF-VOID
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        target: [x86_64-unknown-linux-gnu, x86_64-apple-darwin, x86_64-pc-windows-gnu]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/cf-void dist/cf-void${{ matrix.os == 'windows' && '.exe' || '' }}
+          tar -czf dist/cf-void-${{ steps.meta.outputs.version }}-${{ matrix.os }}.tar.gz -C dist .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cf-void-${{ matrix.os }}
+          path: dist/
