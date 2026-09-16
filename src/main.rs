@@ -1,0 +1,253 @@
+use clap::Parser;
+use std::process;
+use std::io::Write;
+
+use cfvoid::cli::args::CliArgs;
+use cfvoid::cli::banner;
+use cfvoid::core::engine::ScanEngine;
+use cfvoid::scanner::proxy_scraper::ProxyScraper;
+
+fn print_proxy_bar(current: usize, total: usize) {
+    let bar_width = 20;
+    let filled = if total > 0 { (current as f32 / total as f32 * bar_width as f32) as usize } else { 0 };
+    let empty = bar_width - filled;
+    let bar = format!("{}{}", "█".repeat(filled), "▱".repeat(empty));
+    let pct = if total > 0 { (current * 100 / total) } else { 0 };
+    let g = (218, 165, 32);
+    print!("\r\x1B[38;2;{};{};{}m  {} {}% ({} of {}) sources...\x1B[0m",
+        g.0, g.1, g.2, bar, pct, current, total);
+    std::io::stdout().flush().ok();
+}
+
+#[tokio::main]
+async fn main() {
+    tokio::spawn(async move {
+        tokio::signal::ctrl_c().await.ok();
+        process::exit(1);
+    });
+
+    let args = CliArgs::parse();
+
+    // If no arguments provided, launch interactive shell
+    if std::env::args().len() <= 1 {
+        banner::print_cfvoid_banner();
+        cfvoid::cli::shell::run_shell();
+        process::exit(0);
+    }
+
+    if !args.quiet {
+        banner::print_banner();
+        cfvoid::utils::platform::print_platform_info();
+    }
+
+    if args.list_modules {
+        banner::print_module_list();
+        process::exit(0);
+    }
+
+    if args.list_templates {
+        cfvoid::phishing::PhishingGen::list_templates();
+        process::exit(0);
+    }
+
+    if let Some(template) = &args.phish_template {
+        let lhost = args.lhost.as_deref().unwrap_or("127.0.0.1");
+        let lport = args.lport.as_deref().unwrap_or("8080");
+        cfvoid::phishing::PhishingGen::new().generate(template, lhost, lport, args.output.as_deref());
+        process::exit(0);
+    }
+
+    if args.list_templates {
+        cfvoid::phishing::PhishingGen::list_templates();
+        cfvoid::phishing::list_email_templates();
+        process::exit(0);
+    }
+
+    if args.list_emails {
+        cfvoid::phishing::list_email_templates();
+        process::exit(0);
+    }
+
+    if let Some(email_template) = &args.phish_email {
+        let lhost = args.lhost.as_deref().unwrap_or("127.0.0.1");
+        let lport = args.lport.as_deref().unwrap_or("8080");
+        let link = format!("http://{}:{}/{}", lhost, lport, email_template);
+        let name = "User".to_string();
+        let email = match email_template.to_lowercase().as_str() {
+            "birthday" => cfvoid::phishing::EmailTemplate::birthday_email(&name, &link),
+            "love" => cfvoid::phishing::EmailTemplate::love_email(&name, &link),
+            "offer" => cfvoid::phishing::EmailTemplate::offer_email(&name, &link),
+            "card" => cfvoid::phishing::EmailTemplate::card_email(&name, &link),
+            "prize" => cfvoid::phishing::EmailTemplate::prize_email(&name, &link),
+            "invoice" => cfvoid::phishing::EmailTemplate::invoice_email(&name, &link),
+            "shipping" => cfvoid::phishing::EmailTemplate::shipping_email(&name, &link),
+            "bank" => cfvoid::phishing::EmailTemplate::bank_email(&name, &link),
+            "crypto" => cfvoid::phishing::EmailTemplate::crypto_email(&name, &link),
+            "tax" => cfvoid::phishing::EmailTemplate::tax_email(&name, &link),
+            "meeting" => cfvoid::phishing::EmailTemplate::meeting_email(&name, &link),
+            _ => {
+                cfvoid::phishing::list_email_templates();
+                process::exit(0);
+            }
+        };
+        banner::info(&format!("Subject: {}", email.subject));
+        email.save("phishing_emails");
+        banner::success(&format!("Email template generated: phishing_emails/{}.html", email_template));
+        banner::info(&format!("Host landing page with: python3 -m http.server {} --bind {}", lport, lhost));
+        process::exit(0);
+    }
+
+    if args.tui {
+        if let Err(e) = cfvoid::cli::tui::run_tui() {
+            banner::error(&format!("TUI error: {}", e));
+        }
+        process::exit(0);
+    }
+
+    // New: Web mode
+    if args.web {
+        #[cfg(feature = "web")]
+        {
+            if let Err(e) = cfvoid::cli::web::run_web(args.web_port).await {
+                banner::error(&format!("Web server error: {}", e));
+            }
+        }
+        #[cfg(not(feature = "web"))]
+        {
+            banner::error("Web feature not compiled. Build with --features web");
+        }
+        process::exit(0);
+    }
+
+    // New: Proxy scrape mode
+    if args.proxy_scrape {
+        banner::print_cfvoid_banner();
+        banner::success("Starting proxy scrape...");
+        let mut scraper = ProxyScraper::new();
+        let total = scraper.scrape_all().await;
+        banner::success(&format!("Scraped {} proxies from 15+ sources", total));
+
+        // Show progress while testing
+        print!("\n  [*] Testing proxy health...\n");
+        let (total_count, _, _) = scraper.stats();
+        for i in 0..total_count.min(100) {
+            print_proxy_bar(i + 1, total_count);
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        println!();
+
+        scraper.test_all(50).await;
+        let (total_count, alive, dead) = scraper.stats();
+        banner::success(&format!("Alive: {} | Dead: {}", alive, dead));
+
+        for proxy in scraper.alive_proxies.iter().take(20) {
+            banner::info(&format!("Alive: {}://{}:{} ({}ms)",
+                proxy.kind.as_str(), proxy.ip, proxy.port, proxy.latency_ms));
+        }
+        if alive > 20 {
+            banner::info(&format!("... and {} more", alive - 20));
+        }
+        process::exit(0);
+    }
+
+    if args.crack_hash.is_some() || args.brute_force {
+        cfvoid::core::engine::run_password_cracker(&args).await;
+        process::exit(0);
+    }
+
+    if args.reverse_shell || args.bind_shell || args.web_shell || args.payload_gen ||
+       args.apk_payload || args.exe_payload || args.ps_variant.is_some() ||
+       args.windows_payload || args.linux_payload || args.macos_payload ||
+       args.cloud_payload || args.fileless || args.payload_type.is_some() {
+        cfvoid::core::engine::run_payloads_only(&args).await;
+        process::exit(0);
+    }
+
+    if args.listen {
+        cfvoid::core::engine::run_session_listener(&args).await;
+        process::exit(0);
+    }
+
+    if args.sessions {
+        cfvoid::core::engine::run_session_list(&args).await;
+        process::exit(0);
+    }
+
+    if args.has_fuzz() {
+        if let Some(_u) = &args.url {
+            cfvoid::core::engine::run_fuzz(&args).await;
+            process::exit(0);
+        } else {
+            banner::error("Fuzzing requires --url <target>");
+            process::exit(1);
+        }
+    }
+
+    // AI Attack
+    if args.ai {
+        if args.url.is_none() && args.target.is_none() {
+            banner::error("AI attack requires --url <target>");
+            process::exit(1);
+        }
+        cfvoid::core::engine::run_ai_attack(&args).await;
+        process::exit(0);
+    }
+
+    if args.ports.is_some() || args.banner_grab || args.subnet_scan {
+        if let Some(_t) = &args.target {
+            cfvoid::core::engine::run_network_scan(&args).await;
+            process::exit(0);
+        } else {
+            banner::error("Network scanning requires --target <ip>");
+            process::exit(1);
+        }
+    }
+
+    if !args.has_target() {
+        banner::error("No target specified. Use -u <url> or -t <ip>");
+        process::exit(1);
+    }
+
+    if !args.has_any_attack() {
+        banner::error("No attack module selected. Use --web-all or --help");
+        process::exit(1);
+    }
+
+    let engine = match ScanEngine::new(args.clone()) {
+        Ok(e) => e,
+        Err(e) => {
+            banner::error(&format!("Initialization failed: {}", e));
+            process::exit(1);
+        }
+    };
+
+    match engine.run().await {
+        Ok(result) => {
+            if let Some(report_path) = &args.report {
+                let format = args.format.as_deref().unwrap_or("json");
+                let gen = cfvoid::report::generator::ReportGenerator::new(result.clone());
+                if let Err(e) = gen.save(report_path, format) {
+                    banner::error(&format!("Report save failed: {}", e));
+                } else {
+                    banner::print_report_saved(report_path);
+                }
+            }
+
+            if let Some(output) = &args.output {
+                let format = args.format.as_deref().unwrap_or("json");
+                let gen = cfvoid::report::generator::ReportGenerator::new(result.clone());
+                if let Err(e) = gen.save(output, format) {
+                    banner::error(&format!("Report save failed: {}", e));
+                } else {
+                    banner::success(&format!("Report saved: {}", output));
+                }
+            }
+
+            process::exit(if result.finding_count() > 0 { 1 } else { 0 });
+        }
+        Err(e) => {
+            banner::error(&format!("Scan failed: {}", e));
+            process::exit(1);
+        }
+    }
+}

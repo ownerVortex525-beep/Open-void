@@ -1,0 +1,93 @@
+# CF-VOID Configuration File
+# IND 'CYBER-FORCE' :: Offensive Security Platform
+
+[general]
+version = "3.0"
+name = "CF-VOID"
+author = "IND 'CYBER-FORCE'"
+verbose = false
+stealth = false
+timeout = 30
+
+[http]
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+follow_redirects = true
+max_redirects = 10
+cookie = ""
+bearer_token = ""
+default_headers = []
+
+[scanning]
+default_ports = "1-1000"
+host_timeout = 5
+max_retries = 3
+scan_type = "connect"
+rate_limit = 0
+decoy_scanning = false
+subnet_cidr = "24"
+
+[fuzzing]
+extensions = ".html,.php,.js,.css,.xml,.json,.asp,.aspx"
+wordlist_path = "wordlists/rockyou.txt"
+threads = 10
+delay = 0
+timeout = 10
+follow_redirects = true
+match_status = [200, 301, 302, 304, 401, 403, 500]
+exclude_status = [404]
+match_size = []
+exclude_size = []
+
+[credentials]
+brute_threads = 10
+brute_timeout = 10
+userlist_path = "wordlists/usernames.txt"
+passlist_path = "wordlists/rockyou.txt"
+brute_ssh_port = 22
+brute_http_path = "/admin"
+brute_ftp_port = 21
+brute_mysql_port = 3306
+brute_rdp_port = 3389
+test_default = true
+
+[payloads]
+default_lhost = "127.0.0.1"
+default_lport = 4444
+default_arch = "x64"
+default_format = "exe"
+encode_payloads = true
+ obfuscate = false
+# Obfuscation techniques: base64, hex, xor, caesar
+
+[post_exploit]
+persistence_method = "registry"
+process_injection = "reflective"
+keylogger_enabled = true
+screenshot_interval = 30
+exfil_method = "http"
+cleanup_traces = false
+proxy_enabled = false
+
+[reporting]
+report_dir = "reports"
+html_enabled = true
+json_enabled = true
+xml_enabled = false
+csv_enabled = true
+markdown_enabled = true
+include_evidence = true
+include_recommendations = true
+
+[proxy]
+http_proxy = ""
+https_proxy = ""
+socks5_proxy = ""
+proxy_auth = ""
+proxy_timeout = 10
+
+[session]
+listener_default_port = 4444
+listener_host = "0.0.0.0"
+session_timeout = 3600
+max_sessions = 10
+auto_interact = false
