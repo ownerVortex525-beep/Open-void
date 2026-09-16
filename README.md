@@ -4,12 +4,36 @@
 [![License](https://img.shields.io/badge/License-Educational%20Use%20Only-orange?style=flat-square)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.75+-orange?style=flat-square&logo=rust)](https://www.rust-lang.org/)
 [![Platform](https://img.shields.io/badge/Platform-Kali%20%7C%20Termux%20%7C%20Ubuntu%20%7C%20Windows%20%7C%20macOS-lightseagreen?style=flat-square)](https://github.com/ownerVortex525-beep/Open-void)
+[![GitHub stars](https://img.shields.io/github/stars/ownerVortex525-beep/Open-void?style=flat-square&label=Stars)](https://github.com/ownerVortex525-beep/Open-void/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/ownerVortex525-beep/Open-void?style=flat-square&label=Forks)](https://github.com/ownerVortex525-beep/Open-void/network)
+[![GitHub issues](https://img.shields.io/github/issues/ownerVortex525-beep/Open-void?style=flat-square)](https://github.com/ownerVortex525-beep/Open-void/issues)
+
+<p align="center">
+  <img src="assets/CF-VOID.png" width="500" alt="CF-VOID Logo">
+</p>
 
 **CF-VOID** is a comprehensive offensive security platform built in Rust, designed for penetration testing and security research. It provides a complete toolkit for ethical hackers, security researchers, and red teams.
 
 ---
 
-![CF-VOID Banner](assets/cf-void-logo.txt)
+## Screenshots
+
+<p align="center">
+  <img src="assets/Screenshot_20260915-121346.png" width="800" alt="CF-VOID Main Interface">
+  <img src="assets/Screenshot_20260915-121429.png" width="800" alt="CF-VOID TUI Dashboard">
+</p>
+
+<p align="center">
+  <img src="assets/Screenshot_20260915-121455.png" width="800" alt="CF-VOID TUI Scanning">
+  <img src="assets/Screenshot_20260915-121540.png" width="800" alt="CF-VOID TUI Payloads">
+</p>
+
+<p align="center">
+  <img src="assets/Screenshot_20260915-121649.png" width="800" alt="CF-VOID AI Attack">
+  <img src="assets/Screenshot_20260915-122247.png" width="800" alt="CF-VOID Shell">
+</p>
+
+---
 
 ## Key Features
 
@@ -32,20 +56,19 @@
 
 ### Installation
 
+**From Releases (Recommended):**
+```bash
+curl -L https://github.com/ownerVortex525-beep/Open-void/releases/latest/download/cf-void-linux.tar.gz | tar xz
+chmod +x cf-void
+sudo cp cf-void /usr/local/bin/
+```
+
 **From Source:**
 ```bash
 git clone https://github.com/ownerVortex525-beep/Open-void.git
 cd Open-void
 cargo build --release
-cp target/release/cf-void /usr/local/bin/cf-void
-```
-
-**From Releases:**
-```bash
-# Download latest release
-curl -L https://github.com/ownerVortex525-beep/Open-void/releases/latest/download/cf-void-linux.tar.gz | tar xz
-chmod +x cf-void-linux
-cp cf-void-linux /usr/local/bin/cf-void
+sudo cp target/release/cf-void /usr/local/bin/
 ```
 
 ### Usage
@@ -68,7 +91,7 @@ cf-void -u https://target.com --fuzz
 # Interactive TUI
 cf-void --tui
 
-# AI attack (requires API key in ~/.cf-void/keys.toml)
+# AI attack (requires API key setup)
 cf-void -u https://target.com --ai --ai-provider openai
 
 # Generate phishing page
@@ -150,7 +173,7 @@ SQLi (UNION, Boolean, Time-based), XSS (Reflected, DOM, Stored), LFI (Path trave
 
 ### Payload Generators (50+)
 - **Windows**: exe, dll, hta, msi, powershell, VBA, COM objects, LOLBins
-- **Linux**: ELF binaries, cron jobs, systemd services, bash reverse shells, Python, Ruby, Perl
+- **Linux**: ELF binaries, cron jobs, systemd services, bash/nc/python reverse shells
 - **macOS**: Mach-O binaries, AppleScript, Python, Bash reverse shells
 - **Android**: APK with Meterpreter, nosleep, auto-start
 - **Web**: JavaScript XSS, PHP webshells, ASP, ASPX, JSP, Python CGI
@@ -228,12 +251,17 @@ cargo run -- -u https://target.com --web-all
 - [Wiki](https://github.com/ownerVortex525-beep/Open-void/wiki)
 - [Releases](https://github.com/ownerVortex525-beep/Open-void/releases)
 - [Issues](https://github.com/ownerVortex525-beep/Open-void/issues)
+- [Changelog](CHANGELOG.md)
+
+## Community & Support
+
+- **Author**: CYBER-FORCE - IND 'CYBER-FORCE'
+- **GitHub**: [@ownerVortex525-beep](https://github.com/ownerVortex525-beep)
+
+[![GitHub](https://img.shields.io/badge/GitHub-ownerVortex525--beep-181718?style=for-the-badge&logo=github)](https://github.com/ownerVortex525-beep)
 
 ## License
 
 This tool is for educational and authorized security testing purposes only. The author is not responsible for any misuse or damage caused by this tool.
 
-## Author
-
-**CYBER-FORCE** - IND 'CYBER-FORCE'  
-[![GitHub](https://img.shields.io/badge/GitHub-ownerVortex525--beep-181718?style=for-the-badge&logo=github)](https://github.com/ownerVortex525-beep)
+![License: Educational Use Only](https://img.shields.io/badge/License-Educational%20Use%20Only-orange)
