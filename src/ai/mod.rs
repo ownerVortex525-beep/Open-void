@@ -19,17 +19,54 @@ use crate::cli::banner;
 use std::io::{self, Write};
 
 pub async fn start_interactive_ai_menu() {
-    banner::info("=== AI Attack Menu ===");
-    banner::info("1. Run AI-guided attack reconnaissance");
-    banner::info("2. Generate attack plan");
-    banner::info("3. Execute attack steps");
-    banner::info("4. AI chat assistant");
-    banner::info("5. Configure AI providers");
-    banner::info("6. View AI logs");
-    banner::info("7. Custom attack chain");
-    banner::info("Enter choice (1-7) or 'back': ");
-    // Note: Full interactive menu handled in TUI; this is CLI fallback
-    banner::success("Use 'ai <subcommand>' for direct commands.");
+    let t = crate::cli::banner::TEAL;
+    let g = crate::cli::banner::GOLD;
+    let az = crate::cli::banner::AZURE;
+
+    println!();
+    println!("{}  AI POWERS", crate::cli::banner::tc("▐", g));
+    println!();
+    println!("{}  {} SELECT AI    {}", 
+        crate::cli::banner::tc("▐", g),
+        crate::cli::banner::tc("▶ 1", t),
+        crate::cli::banner::tc("(choose provider, Cerebras default)", crate::cli::banner::DIM));
+    println!("{}  {} AI CONFIG    {}", 
+        crate::cli::banner::tc("▐", g),
+        crate::cli::banner::tc("▶ 2", t),
+        crate::cli::banner::tc("(manage keys, test connection)", crate::cli::banner::DIM));
+    println!("{}  {} ATTACK       {}", 
+        crate::cli::banner::tc("▐", g),
+        crate::cli::banner::tc("▶ 3", t),
+        crate::cli::banner::tc("(enter attack workspace)", crate::cli::banner::DIM));
+    println!();
+    println!("{}  Enter choice (1-3) or 'back' to return: ", crate::cli::banner::tc("▐", g));
+    println!("{}  Default provider: Cerebras (csk-3tc2e2f9...)", crate::cli::banner::tc("▐", g));
+    println!();
+    println!("{}  Use: ai attack <url> [provider]  for quick AI attack", crate::cli::banner::tc("▐", crate::cli::banner::DIM));
+    println!();
+}
+
+pub async fn show_ai_attack_workspace() {
+    let g = crate::cli::banner::GOLD;
+    let t = crate::cli::banner::TEAL;
+    let az = crate::cli::banner::AZURE;
+
+    println!();
+    println!("{}  ATTACK WORKSPACE", crate::cli::banner::tc("▐", g));
+    println!();
+    println!("{}  Target: <not set>", crate::cli::banner::tc("▐", g));
+    println!();
+    println!("{}  Chain steps:", crate::cli::banner::tc("▐", g));
+    println!("{}    [{}] Recon          {}", crate::cli::banner::tc("▐", g), crate::cli::banner::tc("1", az), crate::cli::banner::tc("hosts, subdomains, ports, services", crate::cli::banner::DIM));
+    println!("{}    [{}] Enumerate      {}", crate::cli::banner::tc("▐", g), crate::cli::banner::tc("2", az), crate::cli::banner::tc("versions, vulns, users", crate::cli::banner::DIM));
+    println!("{}    [{}] Gain Access    {}", crate::cli::banner::tc("▐", g), crate::cli::banner::tc("3", az), crate::cli::banner::tc("exploit / payload delivery", crate::cli::banner::DIM));
+    println!("{}    [{}] Dump Data      {}", crate::cli::banner::tc("▐", g), crate::cli::banner::tc("4", az), crate::cli::banner::tc("creds, tokens, files", crate::cli::banner::DIM));
+    println!("{}    [{}] Database       {}", crate::cli::banner::tc("▐", g), crate::cli::banner::tc("5", az), crate::cli::banner::tc("query/extract", crate::cli::banner::DIM));
+    println!("{}    [{}] Shell          {}", crate::cli::banner::tc("▐", g), crate::cli::banner::tc("6", az), crate::cli::banner::tc("interactive session", crate::cli::banner::DIM));
+    println!("{}    [{}] Persistence    {}", crate::cli::banner::tc("▐", g), crate::cli::banner::tc("7", az), crate::cli::banner::tc("maintain access", crate::cli::banner::DIM));
+    println!();
+    println!("{}  Commands: run chain | step <n> | logs | back", crate::cli::banner::tc("▐", g));
+    println!();
 }
 
 pub async fn start_chat_mode() {

@@ -50,149 +50,96 @@ pub fn print_banner() {
     println!("{}{}", tc("▐", g), tc(&line2, g));
     let line3 = format!("  ║  {}                                    ║", tc("by IND 'CYBER-FORCE'", az));
     println!("{}{}", tc("▐", g), tc(&line3, g));
-    println!("{}  ╠═══════════════════════════════════════════════════════════╣{}", tc("▐", g), "\x1B[0m");
-    let line4 = format!("  ║  {} | {} | {}             ║", tc("40+ Scanners", g), tc("20+ Exploits", cr), tc("50+ Payloads", t));
-    println!("{}{}", tc("▐", g), tc(&line4, g));
-    let line5 = format!("  ║  {} | {}    ║", tc("Hash Types: 16", az), tc("Platforms: Win/Linux/macOS/Android", t));
-    println!("{}{}", tc("▐", g), tc(&line5, g));
     println!("{}  ╚═══════════════════════════════════════════════════════════╝{}", tc("▐", g), "\x1B[0m");
     println!();
 }
 
-// ═══════════════════ BIG CF-VOID BANNER (for startup) ═══════════════════
+// ═══════════════════ BIG CF-VOID BANNER (portrait orientation) ═══════════════════
 pub fn print_cfvoid_banner() {
-    let cr = CRIMSON;  // (220, 50, 47)
-    let az = AZURE;    // (42, 157, 223)
-    let t = TEAL;      // (38, 166, 154)
-    let g = GOLD;      // (218, 165, 32)
-    let grn = GREEN;   // (0, 200, 83)
-    let o = ORANGE;    // (255, 165, 0)
-    let dim = DIM;     // (128, 128, 128)
+    let cr = CRIMSON;
+    let g = GOLD;
+    let t = TEAL;
+    let az = AZURE;
 
-    // Big CF-VOID ASCII Art
+    println!();
 
-    // Simpler approach - print each line with colors
-    let lines: Vec<((u8, u8, u8), &str)> = vec![
-        (cr, "CCCCCCCCCCCCCFFFFFFFFFFFFFFFFFFFFFF"),
-        (cr, " CC::::::::::::CF::::::::::::::::::::F"),
-        (cr, "   CC:::::::::::::::CF::::::::::::::::::::F"),
-        (cr, "  C:::::CCCCCCCC::::CFF::::::FFFFFFFFF::::F"),
-        (cr, " C:::::C       CCCCCC  F:::::F       FFFFFF"),
-        (cr, "C:::::C                F:::::F"),
-        (cr, "C:::::C                F::::::FFFFFFFFFF"),
-        (cr, "C:::::C                F:::::::::::::::F    ---------------"),
-        (cr, "C:::::C                F:::::::::::::::F    -:::::::::::::-"),
-        (cr, "C:::::C                F::::::FFFFFFFFFF    ---------------"),
-        (cr, "C:::::C                F:::::F"),
-        (cr, " C:::::C       CCCCCC  F:::::F"),
-        (cr, "  C:::::CCCCCCCC::::CFF:::::::FF"),
-        (cr, "   CC:::::::::::::::CF::::::::FF"),
-        (cr, "     CCC::::::::::::CF::::::::FF"),
-        (cr, "        CCCCCCCCCCCCCFFFFFFFFFFF"),
+    // Visual header bar
+    print!("\x1B[38;2;{};{};{}m  ▁▂▃▅▇  CF-VOID  ▇▆▅▃▂\x1B[0m\n", g.0, g.1, g.2);
+    std::io::stdout().flush().ok();
+    std::thread::sleep(Duration::from_millis(50));
+
+    // Portrait CF-VOID ASCII Art (tall and narrow, ~35 columns wide)
+    // C (CRIMSON)
+    let c_lines: Vec<&str> = vec![
+        "   ██████╗ ██╗   ██╗███████╗██████╗",
+        "  ██╔════╝ ██║   ██║██╔════╝██╔══██╗",
+        "  ██║  ███╗██║   ██║█████╗  ██████╔╝",
+        "  ██║   ██║██║   ██║██╔══╝  ██╔══██╗",
+        "  ╚██████╔╝╚██████╔╝███████╗██║  ██║",
+        "   ╚═════╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝",
     ];
-
-    for (color, text) in lines {
-        println!("{}", tc(text, color));
+    for line in c_lines {
+        println!("\x1B[38;2;{};{};{}m{}\x1B[0m", cr.0, cr.1, cr.2, line);
     }
 
-    // V lines (TEAL)
-    println!("{}", tc("                 VVVVVVVV           VVVVVVVV", t));
-    println!("{}", tc("               V::::::V           V::::::V", t));
-    println!("{}", tc("                 V::::::V           V::::::V", t));
-    println!("{}", tc("                 V:::::V           V:::::V", t));
-    println!("{}", tc("                  V:::::V         V:::::V", t));
-    println!("{}", tc("                  V:::::V       V:::::V", t));
-    println!("{}", tc("                   V:::::V     V:::::V", t));
-    println!("{}", tc("                    V:::::V   V:::::V", t));
-    println!("{}", tc("                     V:::::V V:::::V", t));
-    println!("{}", tc("                      V:::::V:::::V", t));
-    println!("{}", tc("                       V:::::::::V", t));
-    println!("{}", tc("                        V:::::::V", t));
-    println!("{}", tc("                         V:::::V", t));
-    println!("{}", tc("                          V:::V", t));
-    println!("{}", tc("                           VVV", t));
-    println!();
+    std::thread::sleep(Duration::from_millis(50));
+    std::io::stdout().flush().ok();
 
-    // O lines (GOLD)
-    println!("{}", tc("     OOOOOOOOO     ", g));
-    println!("{}", tc("   OO:::::::::OO   ", g));
-    println!("{}", tc(" OO:::::::::::::OO ", g));
-    println!("{}", tc("O:::::::OOO:::::::O", g));
-    println!("{}", tc("O::::::O   O::::::O", g));
-    println!("{}", tc("O:::::O     O:::::O", g));
-    println!("{}", tc("O:::::O     O:::::O", g));
-    println!("{}", tc("O:::::O     O:::::O", g));
-    println!("{}", tc("O:::::O     O:::::O", g));
-    println!("{}", tc("O:::::O     O:::::O", g));
-    println!("{}", tc("O::::::O   O::::::O", g));
-    println!("{}", tc("O:::::::OOO:::::::O", g));
-    println!("{}", tc(" OO:::::::::::::OO ", g));
-    println!("{}", tc("   OO:::::::::OO   ", g));
-    println!("{}", tc("     OOOOOOOOO     ", g));
-    println!();
+    // V (TEAL)
+    let v_lines: Vec<&str> = vec![
+        "  ▐█   ▐█   ▐█ ▐█   ▐█",
+        "   ▐█  ▐█   ▐█ ▐█  ▐█",
+        "    ▐█ ▐█   █  ██ ▐█",
+        "     █ ▐█   █  █ ▐█",
+        "    ▐█  ▐█ ██   ▐█",
+        "   ▐█    ▐██    █",
+        "   █      ▀     ▐",
+    ];
+    for line in v_lines {
+        println!("\x1B[38;2;{};{};{}m  {}\x1B[0m", t.0, t.1, t.2, line);
+    }
 
-    // I D lines (GREEN for I, ORANGE for D)
-    println!("{}", tc("IIIIIIIIIIIIDDDDDDDDDDDDD", grn));
-    println!("{}", tc("I::::::::ID::::::::::::DDD", grn));
-    println!("{}", tc("I::::::::ID:::::::::::::::DD", grn));
-    println!("{}", tc("II::::::IIDDD:::::DDDDD:::::D", grn));
-    println!("{}", tc("  I::::I    D:::::D    D:::::D", grn));
-    println!("{}", tc("  I::::I    D:::::D     D:::::D", grn));
-    println!("{}", tc("  I::::I    D:::::D     D:::::D", grn));
-    println!("{}", tc("  I::::I    D:::::D     D:::::D", grn));
-    println!("{}", tc("  I::::I    D:::::D     D:::::D", grn));
-    println!("{}", tc("  I::::I    D:::::D    D:::::D", grn));
-    println!("{}", tc("  I::::I    DDDDD:::::DDDDD:::::D", grn));
-    println!("{}", tc("  I::::I    D:::::::::::::::DD", grn));
-    println!("{}", tc("  I::::I    D::::::::::::DDD", grn));
-    println!("{}", tc("  IIIIIIIIIDDDDDDDDDDDDD", grn));
-    println!();
+    std::thread::sleep(Duration::from_millis(50));
+    std::io::stdout().flush().ok();
 
-    // Loading sequence
-    println!();
+    // O (GOLD)
+    let o_lines: Vec<&str> = vec![
+        "  ██████╗  ██████╗",
+        " ██╔═══██╗██╔═══██╗",
+        " ██║   ██║██║   ██║",
+        " ██║   ██║██║   ██║",
+        " ╚██████╔╝╚██████╔╝",
+        "  ╚═════╝  ╚═════╝",
+    ];
+    for line in o_lines {
+        println!("\x1B[38;2;{};{};{}m{}\x1B[0m", g.0, g.1, g.2, line);
+    }
+
+    std::thread::sleep(Duration::from_millis(50));
+    std::io::stdout().flush().ok();
+
+    // I D (TEAL)
+    let id_portrait: Vec<&str> = vec![
+        "  ██████╗ ██╗  ████████╗",
+        "  ██╔══██╗██║  ╚══██╔══╝",
+        "  ██║  ██║██║     ██║",
+        "  ██║  ██║██║     ██║",
+        "  ██║  ██║██║     ██║",
+        "  ██████╔╝██║     ██║",
+        "  ╚═════╝ ╚═╝     ╚═╝",
+    ];
+    for line in id_portrait {
+        println!("\x1B[38;2;{};{};{}m{}\x1B[0m", t.0, t.1, t.2, line);
+    }
+
     std::io::stdout().flush().ok();
     std::thread::sleep(Duration::from_millis(50));
-    print!("\x1B[38;2;{};{};{}m     [..] Loading modules...\r\n\x1B[0m", g.0, g.1, g.2);
-    std::io::stdout().flush().ok();
-    std::thread::sleep(Duration::from_millis(50));
-    print!("\x1B[38;2;{};{};{}m     [..] Modules loaded.\r\n\x1B[0m", g.0, g.1, g.2);
-    std::io::stdout().flush().ok();
-    std::thread::sleep(Duration::from_millis(50));
-    print!("\x1B[38;2;{};{};{}m     [+] System ready\r\n\x1B[0m", g.0, g.1, g.2);
-    std::io::stdout().flush().ok();
-    std::thread::sleep(Duration::from_millis(50));
-    print!("\x1B[0m");
 
-    // Capabilities
+    // Compact legal disclaimer (single line)
     println!();
-    println!();
-    println!("\x1B[38;2;{};{};{}m     +================================================================+\x1B[0m", g.0, g.1, g.2);
-    println!("\x1B[38;2;{};{};{}m     |  {} | {} | {} | {}               |\x1B[0m", g.0, g.1, g.2,
-        bold_tc("Modules: 40+", cr),
-        tc("Scanners: 40+", t),
-        tc("Payloads: 50+", g),
-        tc("Phishing: 40+", g));
-    println!("\x1B[38;2;{};{};{}m     |  {} | {}    |\x1B[0m", g.0, g.1, g.2,
-        tc("AI: 9 providers", az),
-        tc("Platforms: Win/Linux/macOS/Android", t));
-    println!("\x1B[38;2;{};{};{}m     +================================================================+\x1B[0m", g.0, g.1, g.2);
-    println!();
-
-    // Legal disclaimer
-    println!("\x1B[38;2;{};{};{}m     ================================================================\x1B[0m", cr.0, cr.1, cr.2);
-    println!("\x1B[38;2;{};{};{}m     |  LEGAL DISCLAIMER:                                            |\x1B[0m", cr.0, cr.1, cr.2);
-    println!("\x1B[38;2;{};{};{}m     |                                                              |\x1B[0m", cr.0, cr.1, cr.2);
-    println!("\x1B[38;2;{};{};{}m     |  CF-VOID is for authorized penetration testing only.    |\x1B[0m", cr.0, cr.1, cr.2);
-    println!("\x1B[38;2;{};{};{}m     |  Use ONLY with written permission. Unauthorized access  |\x1B[0m", cr.0, cr.1, cr.2);
-    println!("\x1B[38;2;{};{};{}m     |  is illegal. Developers assume no liability.             |\x1B[0m", cr.0, cr.1, cr.2);
-    println!("\x1B[38;2;{};{};{}m     ================================================================\x1B[0m", cr.0, cr.1, cr.2);
+    println!("\x1B[1m\x1B[38;2;{};{};{}m  ⚠ Authorized penetration testing only. Use with written permission.\x1B[0m", g.0, g.1, g.2);
+    println!("\x1B[38;2;{};{};{}m  Built by IND 'CYBER-FORCE' :: Offensive Security Platform\x1B[0m", az.0, az.1, az.2);
     println!("\x1B[0m");
-    println!();
-    println!("\x1B[38;2;{};{};{}m     Built by IND 'CYBER-FORCE' for ethical hacking.\x1B[0m", g.0, g.1, g.2);
-    println!("\x1B[0m");
-    println!();
-    println!();
-    std::io::stdout().flush().ok();
 }
 
 // ═══════════════════ SCAN HEADER ═══════════════════

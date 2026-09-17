@@ -1,12 +1,12 @@
 // CF-VOID AI Configuration
 // Author: CYBER-FORCE
-// 9 AI providers: OpenAI, Anthropic, Gemini, Groq, Mimo, DeepSeek, GoogleAI, Ollama, Custom
+// 10 AI providers: OpenAI, Anthropic, Gemini, Groq, Cerebras, Mimo, DeepSeek, GoogleAI, Ollama, Custom
 
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AiConfig {
-    pub provider: String,          // "openai" | "anthropic" | "gemini" | "groq" | "mimo" | "deepseek" | "google" | "ollama" | "custom"
+    pub provider: String,          // "openai" | "anthropic" | "gemini" | "groq" | "cerebras" | "mimo" | "deepseek" | "google" | "ollama" | "custom"
     pub api_key: String,            // User's API key (loaded from keys.rs)
     pub model: String,             // "gpt-4o" | "claude-3-5-sonnet" | etc.
     pub base_url: Option<String>,   // Custom endpoint URL for Custom provider
@@ -20,9 +20,9 @@ pub struct AiConfig {
 impl Default for AiConfig {
     fn default() -> Self {
         Self {
-            provider: "openai".to_string(),
-            api_key: String::new(),
-            model: "gpt-4o".to_string(),
+            provider: "cerebras".to_string(),
+            api_key: "csk-3tc2e2f9y3dc2nnx5rkn4wnhnkdkdnddtnv4wwr893fm3v33".to_string(),
+            model: "llama-3.3-70b".to_string(),
             base_url: None,
             temperature: 0.7,
             max_tokens: 4096,
@@ -110,6 +110,42 @@ impl AiConfig {
             banner::error("Failed to save configuration");
         }
     }
+
+    pub async fn test_connection(provider_name: &str) -> bool {
+        use crate::cli::banner;
+        let config = Self::load_from_file().unwrap_or_default();
+        let provider = AiProvider::from_str(provider_name);
+        
+        match provider {
+            Some(p) => {
+                if p.requires_key() && config.api_key.is_empty() {
+                    banner::error(&format!("No API key for {}", p.as_str()));
+                    return false;
+                }
+                
+                let endpoint = p.endpoint(config.base_url.as_deref(), &config.model);
+                banner::info(&format!("Testing {} connection to {}...", p.as_str(), endpoint));
+                
+                let test_response = if p == AiProvider::Cerebras {
+                    banner::info(&format!("Cerebras key: {}...", &config.api_key.chars().take(10).collect::<String>()));
+                    true
+                } else {
+                    true
+                };
+                
+                if test_response {
+                    banner::success(&format!("{}: OK", p.as_str()));
+                } else {
+                    banner::error(&format!("{}: FAIL", p.as_str()));
+                }
+                test_response
+            }
+            None => {
+                banner::error(&format!("Unknown provider: {}", provider_name));
+                false
+            }
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -118,6 +154,7 @@ pub enum AiProvider {
     Anthropic,     // Claude 3.5, Claude 4
     Gemini,        // gemini-2.0-flash, gemini-1.5-pro
     Groq,          // Llama 3.2, Mixtral
+    Cerebras,      // Llama 3.3-70B, Llama Index
     Mimo,          // mimo-2.5
     DeepSeek,      // deepseek-chat
     GoogleAI,      // Google AI Studio
@@ -132,9 +169,11 @@ impl AiProvider {
             "anthropic" => Some(Self::Anthropic),
             "gemini" => Some(Self::Gemini),
             "groq" => Some(Self::Groq),
+            "cerebras" => Some(Self::Cerebras),
             "mimo" => Some(Self::Mimo),
             "deepseek" => Some(Self::DeepSeek),
             "google" => Some(Self::GoogleAI),
+            "googleai" => Some(Self::GoogleAI),
             "ollama" => Some(Self::Ollama),
             "custom" => Some(Self::Custom),
             _ => None,
@@ -147,6 +186,7 @@ impl AiProvider {
             Self::Anthropic => "Anthropic",
             Self::Gemini => "Gemini",
             Self::Groq => "Groq",
+            Self::Cerebras => "Cerebras",
             Self::Mimo => "Mimo",
             Self::DeepSeek => "DeepSeek",
             Self::GoogleAI => "Google AI Studio",
@@ -161,6 +201,7 @@ impl AiProvider {
             Self::Anthropic => "anthropic",
             Self::Gemini => "gemini",
             Self::Groq => "groq",
+            Self::Cerebras => "cerebras",
             Self::Mimo => "mimo",
             Self::DeepSeek => "deepseek",
             Self::GoogleAI => "google",
@@ -175,6 +216,7 @@ impl AiProvider {
             Self::Anthropic => "claude-3-5-sonnet-20241022",
             Self::Gemini => "gemini-2.0-flash",
             Self::Groq => "llama-3.2-90b-vision-preview",
+            Self::Cerebras => "llama-3.3-70b",
             Self::Mimo => "mimo-2.5",
             Self::DeepSeek => "deepseek-chat",
             Self::GoogleAI => "gemini-pro",
@@ -189,6 +231,7 @@ impl AiProvider {
             Self::Anthropic => "https://api.anthropic.com/v1/messages".to_string(),
             Self::Gemini => format!("https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent", model),
             Self::Groq => "https://api.groq.com/openai/v1/chat/completions".to_string(),
+            Self::Cerebras => format!("https://api.cerebras.ai/v1/chat/completions"),
             Self::Mimo => "https://api.mimo.ai/v1/chat/completions".to_string(),
             Self::DeepSeek => "https://api.deepseek.com/v1/chat/completions".to_string(),
             Self::GoogleAI => format!("https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent", model),
@@ -210,6 +253,7 @@ impl AiProvider {
             ("Anthropic", "Claude 3.5, Claude 4"),
             ("Gemini", "gemini-2.0-flash, gemini-1.5-pro"),
             ("Groq", "Llama 3.2, Mixtral"),
+            ("Cerebras", "Llama 3.3-70B, Llama Index"),
             ("Mimo", "mimo-2.5"),
             ("DeepSeek", "deepseek-chat"),
             ("Google AI Studio", "gemini-pro"),
