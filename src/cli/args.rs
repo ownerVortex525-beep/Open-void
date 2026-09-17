@@ -347,7 +347,7 @@ pub struct CliArgs {
     #[arg(long, help = "Generate phishing email template (birthday/love/offer/card/etc)")]
     pub phish_email: Option<String>,
 
-    #[arg(long, short = 'L', help = "List available phishing templates")]
+    #[arg(long, short = 'T', help = "List available phishing templates")]
     pub list_templates: bool,
 
     #[arg(long, short = 'M', help = "List available phishing email templates")]
