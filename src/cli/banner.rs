@@ -150,14 +150,31 @@ pub fn print_scan_header(target: &str, modules: &[&str]) {
 
     println!();
     println!("{}  ▐━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━▌{}", tc("▐", g), "\x1B[0m");
-    println!("  {} CF-VOID :: SCAN CONFIGURATION", bold_tc("▐━━▌", g));
+    println!("{}  ▐━▌ SCAN CONFIGURATION", bold_tc("▐━▌", g));
     println!("{}  ▐━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━▌{}", tc("▐", g), "\x1B[0m");
-    println!("  ➥ Target   :: {}", bold_tc(target, WHITE));
-    println!("  ➦ Modules  :: {}", tc(&modules.join(", ").to_string(), t));
-    println!("  ➤ Threads  :: {}", tc("10", t));
-    println!("  ➥ Timeout  :: {}", tc("30s", t));
+    println!(" {}  ➥ Target    :: {}", tc("▐", g), bold_tc(target, WHITE));
+    println!(" {}  ➦ Modules   :: {}", tc("▐", g), tc(&modules.join(", ").to_string(), t));
+    println!(" {}  ➤ Threads   :: {}", tc("▐", g), tc("10", t));
+    println!(" {}  ➥ Timeout   :: {}", tc("▐", g), tc("30s", t));
     println!("{}  ▐─────────────────────────────────────────────────────────────▌{}", tc("▐", g), "\x1B[0m");
     println!();
+}
+
+pub fn print_section_header(title: &str) {
+    let g = GOLD;
+    println!();
+    println!("{}  ▁▂▃▅▇  {}  ▇▆▅▃▂", tc("▐", g), bold_tc(title, GOLD));
+    println!("{}  ──────────────────────────────────────────", tc("▐", g));
+}
+
+// Theme support
+static THEME: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0); // 0=full, 1=minimal
+
+pub fn toggle_theme() {
+    let current = THEME.load(std::sync::atomic::Ordering::SeqCst);
+    THEME.store(if current == 0 { 1 } else { 0 }, std::sync::atomic::Ordering::SeqCst);
+    let name = if THEME.load(std::sync::atomic::Ordering::SeqCst) == 0 { "Full" } else { "Minimal" };
+    println!("{}  Theme: {}", tc("▐", GOLD), name);
 }
 
 // ═══════════════════ ATTACK LOG ═══════════════════
