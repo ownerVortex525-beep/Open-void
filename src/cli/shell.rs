@@ -227,7 +227,7 @@ fn process_shell_command(input: &str) {
             io::stdout().flush().unwrap_or(());
         }
         "version" | "ver" => {
-            println!("  {} CF-VOID", tc("▐", GOLD));
+            println!("  {} CF-VOID v{}", tc("▐", GOLD), crate::VERSION);
             println!("  {} IND 'CYBER-FORCE' :: Offensive Security Platform", tc("➥", TEAL));
         }
         "ls" | "pwd" | "cd" | "cat" | "echo" | "mkdir" | "rm" | "cp" | "mv" | "chmod" | "grep" | "find" | "whoami" | "ifconfig" | "ping" | "curl" | "wget" => {
