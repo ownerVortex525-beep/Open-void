@@ -36,7 +36,7 @@ async fn main() {
     }
 
     // Skip banner for utility/listing commands
-    let skip_banner = args.list_modules || args.list_templates || args.list_emails || args.phish_template.is_some();
+    let skip_banner = args.list_modules || args.list_templates || args.list_emails || args.phish_template.is_some() || args.phish_serve.is_some();
     
     if !args.quiet && !skip_banner {
         banner::print_banner();
@@ -57,6 +57,17 @@ async fn main() {
         let lhost = args.lhost.as_deref().unwrap_or("127.0.0.1");
         let lport = args.lport.as_deref().unwrap_or("8080");
         cfvoid::phishing::PhishingGen::new().generate(template, lhost, lport, args.output.as_deref());
+        process::exit(0);
+    }
+
+    if let Some(template) = &args.phish_serve {
+        let lhost = args.lhost.as_deref().unwrap_or("0.0.0.0");
+        let lport: u16 = args.lport.as_deref().and_then(|s| s.parse().ok()).unwrap_or(8080);
+        let mut server = cfvoid::phishing::PhishingServer::new(lhost, lport, template);
+        if let Some(tunnel_type) = &args.tunnel {
+            server = server.with_tunnel(tunnel_type);
+        }
+        let _ = server.start();
         process::exit(0);
     }
 

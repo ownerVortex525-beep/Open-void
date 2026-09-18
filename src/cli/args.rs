@@ -347,6 +347,12 @@ pub struct CliArgs {
     #[arg(long, help = "Generate phishing email template (birthday/love/offer/card/etc)")]
     pub phish_email: Option<String>,
 
+    #[arg(long, help = "Start phishing server with credential capture (template: instagram, facebook, etc)")]
+    pub phish_serve: Option<String>,
+
+    #[arg(long, help = "Tunnel type for phishing server (cloudflared, localtunnel, serveo)")]
+    pub tunnel: Option<String>,
+
     #[arg(long, short = 'T', help = "List available phishing templates")]
     pub list_templates: bool,
 
