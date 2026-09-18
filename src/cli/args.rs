@@ -557,7 +557,7 @@ impl CliArgs {
         self.has_exploits() || self.has_payloads() || self.has_hash_or_crack() ||
         self.has_fuzz() || self.listen || self.sessions ||
         self.iot_scan || self.cloud_audit ||
-        self.ai
+        self.ai || self.phish_serve.is_some()
     }
 
     pub fn get_auth(&self) -> Option<(String, String)> {

