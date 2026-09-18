@@ -341,7 +341,7 @@ pub struct CliArgs {
     pub osint_all: bool,
 
     // ═══════════════════ SOCIAL ENGINEERING ═══════════════════
-    #[arg(long, help = "Generate phishing page (template: instagram, facebook, etc)")]
+    #[arg(long, help = "Generate phishing page (template: instagram, facebook, etc)", alias = "phis-template")]
     pub phish_template: Option<String>,
 
     #[arg(long, help = "Generate phishing email template (birthday/love/offer/card/etc)")]

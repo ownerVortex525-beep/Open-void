@@ -8,8 +8,8 @@ import android.os.Looper;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
-    private static final String LHOST = "10.0.0.1";
-    private static final int LPORT = 4444;
+    private static final String LHOST = "192.168.1.1";
+    private static final int LPORT = 8888;
     private Handler handler = new Handler(Looper.getMainLooper());
 
     @Override
