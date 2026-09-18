@@ -169,7 +169,7 @@ body {{ font-family: 'Arial', sans-serif; background: #f0f2f5; padding: 20px; }}
         Self { name: "prize".to_string(), subject, html_body: body, link_url: link.to_string() }
     }
 
-    pub fn invoice_email(name: &str, link: &str) -> Self {
+    pub fn invoice_email(_name: &str, link: &str) -> Self {
         let subject = format!("Invoice #INV-{} - Payment Required", chrono::Local::now().format("%Y%m%d"));
         let amount = "1,247.50";
         let body = format!(r#"<!DOCTYPE html>
@@ -230,7 +230,7 @@ body {{ font-family: 'Arial', sans-serif; background: #f8f9fa; padding: 20px; }}
         Self { name: "shipping".to_string(), subject, html_body: body, link_url: link.to_string() }
     }
 
-    pub fn bank_email(name: &str, link: &str) -> Self {
+    pub fn bank_email(_name: &str, link: &str) -> Self {
         let subject = format!("{} - Security Alert: Login from new device", chrono::Local::now().format("%B %d"));
         let body = format!(r#"<!DOCTYPE html>
 <html><head><meta charset="UTF-8">

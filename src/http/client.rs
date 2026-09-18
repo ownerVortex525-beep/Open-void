@@ -1,5 +1,5 @@
 use anyhow::{Result, anyhow};
-use reqwest::{Client, ClientBuilder};
+use reqwest::Client;
 use std::time::Duration;
 
 #[derive(Debug, Clone)]

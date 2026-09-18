@@ -28,7 +28,7 @@ pub fn is_shutdown_requested() -> bool {
     SHUTDOWN.load(Ordering::Acquire)
 }
 
-pub const VERSION: &str = "1.0";
+pub const VERSION: &str = "5.0.0";
 pub const NAME: &str = "CF-VOID";
 pub const DESCRIPTION: &str = "Complete Offensive Security Platform";
 pub const AUTHOR: &str = "CYBER-FORCE";

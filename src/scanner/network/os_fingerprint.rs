@@ -1,11 +1,11 @@
 use crate::cli::banner;
 use std::net::Ipv4Addr;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use std::str::FromStr;
 use tokio::net::TcpStream;
 use crate::http::client::HttpClient;
 
-pub async fn fingerprint_os(target: &str, client: &HttpClient) -> anyhow::Result<super::OSFingerprint> {
+pub async fn fingerprint_os(target: &str, _client: &HttpClient) -> anyhow::Result<super::OSFingerprint> {
     banner::print_scanning("OS Fingerprinting", target);
     
     let _target_ip = match Ipv4Addr::from_str(target) {
@@ -22,7 +22,7 @@ pub async fn fingerprint_os(target: &str, client: &HttpClient) -> anyhow::Result
             TcpStream::connect(format!("{}:{}", target, port))
         ).await {
             Ok(Ok(stream)) => {
-                let ttl = stream.local_addr().map(|a| {
+                let ttl = stream.local_addr().map(|_a| {
                     let ttl = 64u8;
                     ttl
                 }).unwrap_or(64u8);

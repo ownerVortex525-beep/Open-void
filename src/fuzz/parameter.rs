@@ -29,7 +29,7 @@ pub async fn fuzz_parameters(
         url
     };
 
-    let client_clone = client.clone();
+    let client_clone = client;
 
     let futures: Vec<_> = COMMON_PARAMS.iter().flat_map(|param| {
         TEST_VALUES.iter().map(move |value| {
@@ -38,7 +38,7 @@ pub async fn fuzz_parameters(
             } else {
                 format!("{}?{}={}", base_url, param, value)
             };
-            let c = client_clone.clone();
+            let c = client_clone;
             let param = param.to_string();
             let value = value.to_string();
             async move {

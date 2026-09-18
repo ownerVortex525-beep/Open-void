@@ -2,7 +2,6 @@
 // Author: CYBER-FORCE
 // Unified live log stream for all operations with color-coded tags
 
-use anyhow::Result;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -49,6 +48,7 @@ struct LogStats {
     success_count: AtomicU64,
     fail_count: AtomicU64,
     warn_count: AtomicU64,
+    #[allow(dead_code)]
     start_time: Option<Instant>,
 }
 
@@ -66,7 +66,7 @@ impl LiveLogger {
         let timestamp = chrono::Local::now().format("%H:%M:%S").to_string();
         
         // Update stats
-        if let Ok(mut stats) = self.stats.lock() {
+        if let Ok(stats) = self.stats.lock() {
             match level {
                 LogLevel::Success => { let _ = stats.success_count.fetch_add(1, Ordering::SeqCst); }
                 LogLevel::Fail => { let _ = stats.fail_count.fetch_add(1, Ordering::SeqCst); }
@@ -145,7 +145,7 @@ impl LiveLogger {
 
     pub fn print_stats(&self) {
         let (success, fail, warn) = self.stats();
-        let t = crate::cli::banner::TEAL;
+        let _t = crate::cli::banner::TEAL;
         let g = crate::cli::banner::GOLD;
         let cr = crate::cli::banner::CRIMSON;
         let y = crate::cli::banner::YELLOW;

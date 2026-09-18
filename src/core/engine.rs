@@ -1434,7 +1434,7 @@ async fn scan_zeroday(target: &str, client: &HttpClient, findings: &Arc<Mutex<Ve
 //  EXPLOITS
 // ══════════════════════════════════════════════════════════════
 
-async fn run_exploits(target: &str, client: &HttpClient, findings: &Arc<Mutex<Vec<Finding>>>, count: &Arc<Mutex<usize>>, args: &CliArgs) {
+async fn run_exploits(target: &str, _client: &HttpClient, findings: &Arc<Mutex<Vec<Finding>>>, count: &Arc<Mutex<usize>>, args: &CliArgs) {
     banner::info("Initializing exploit modules...");
 
     if args.exploit_sqli || args.exploit_all {
@@ -1722,7 +1722,7 @@ async fn exploit_ssti(target: &str, findings: &Arc<Mutex<Vec<Finding>>>, count: 
 //  PAYLOADS
 // ══════════════════════════════════════════════════════════════
 
-async fn run_payloads(target: &str, findings: &Arc<Mutex<Vec<Finding>>>, args: &CliArgs) {
+async fn run_payloads(_target: &str, _findings: &Arc<Mutex<Vec<Finding>>>, args: &CliArgs) {
     banner::info("Initializing payload generators...");
     
     let gen = PayloadGen::new(args.verbose);
@@ -1826,11 +1826,16 @@ pub async fn run_password_cracker(args: &CliArgs) {
 }
 
 pub async fn run_payloads_only(args: &CliArgs) {
-    let gen = PayloadGen::new(args.verbose);
-    
+    let gen = PayloadGen::new(true);
+
+    // Parse extra positional arguments for lhost/lport (e.g., payload --apk-payload 192.168.1.1 8080)
+    let extra = &args.extra_args;
+    let extra_lhost = extra.get(0).map(|s| s.as_str());
+    let extra_lport = extra.get(1).map(|s| s.as_str());
+
     if args.reverse_shell {
-        let lhost = args.lhost.as_deref().unwrap_or("127.0.0.1");
-        let lport = args.lport.as_deref().unwrap_or("4444");
+        let lhost = args.lhost.as_deref().or(extra_lhost).unwrap_or("127.0.0.1");
+        let lport = args.lport.as_deref().or(extra_lport).unwrap_or("4444");
         let lang = args.payload_lang.as_deref().unwrap_or("bash");
         gen.generate_reverse_shell(lhost, lport, lang);
     }
@@ -1855,8 +1860,8 @@ pub async fn run_payloads_only(args: &CliArgs) {
     }
     
     if args.apk_payload {
-        let lhost = args.lhost.as_deref().unwrap_or("127.0.0.1");
-        let lport = args.lport.as_deref().unwrap_or("4444");
+        let lhost = args.lhost.as_deref().or(extra_lhost).unwrap_or("127.0.0.1");
+        let lport = args.lport.as_deref().or(extra_lport).unwrap_or("4444");
         let output = args.output.as_deref().unwrap_or("");
         if output.is_empty() {
             gen.generate_android_apk_interactive(lhost, lport, output);
@@ -1866,8 +1871,8 @@ pub async fn run_payloads_only(args: &CliArgs) {
     }
 
     if args.exe_payload {
-        let lhost = args.lhost.as_deref().unwrap_or("127.0.0.1");
-        let lport = args.lport.as_deref().unwrap_or("4444");
+        let lhost = args.lhost.as_deref().or(extra_lhost).unwrap_or("127.0.0.1");
+        let lport = args.lport.as_deref().or(extra_lport).unwrap_or("4444");
         if args.output.is_none() {
             gen.generate_windows_payload_interactive(lhost, lport, "x64");
         } else {

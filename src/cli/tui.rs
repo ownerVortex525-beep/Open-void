@@ -12,10 +12,10 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{
-    backend::{Backend, CrosstermBackend},
+    backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Line, Span, Text},
+    text::{Line, Span},
     widgets::{
         Block, Borders, List, ListItem, ListState,
         Paragraph, Tabs, Wrap,
@@ -26,7 +26,6 @@ use ratatui::{
 use crate::cli::terminal::{AttackTerminal, LineKind, Severity};
 use crate::cli::device;
 use crate::ai::config::{AiConfig, AiProvider};
-use crate::config::keys::KeysConfig;
 use crate::scanner::proxy_scraper::ProxyScraper;
 
 // Color palette (no emoji, use ASCII)
@@ -701,7 +700,7 @@ fn handle_dashboard_extra(app: &mut App, key: KeyEvent) {
     }
 }
 
-fn handle_scanning_extra(app: &mut App, key: KeyEvent) {
+fn handle_scanning_extra(_app: &mut App, _key: KeyEvent) {
     // No extra keys needed - all handled by global keys
 }
 
@@ -781,7 +780,7 @@ fn handle_device_extra(app: &mut App, key: KeyEvent) {
     }
 }
 
-fn handle_config_extra(app: &mut App, key: KeyEvent) {
+fn handle_config_extra(_app: &mut App, _key: KeyEvent) {
     // No extra keys needed
 }
 

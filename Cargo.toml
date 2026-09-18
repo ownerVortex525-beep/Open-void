@@ -1,9 +1,9 @@
 [package]
 name = "cf-void"
-version = "4.0.0"
+version = "5.0.0"
 edition = "2021"
 authors = ["CF-VOID Team"]
-description = "CF-VOID v4.0 - Complete Offensive Security Platform"
+description = "CF-VOID v5.0 - Complete Offensive Security Platform"
 license = "GPL-3.0"
 
 [lib]

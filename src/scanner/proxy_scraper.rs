@@ -4,8 +4,7 @@
 // Auto-reconnect on proxy failure
 
 use std::collections::HashSet;
-use std::net::SocketAddr;
-use std::str::FromStr;
+
 use std::time::Instant;
 
 pub struct ProxyScraper {
@@ -565,7 +564,7 @@ impl ProxyScraper {
     }
 
     pub fn format_status(&self) -> String {
-        let (total, alive, dead) = self.stats();
+        let (total, alive, _dead) = self.stats();
         let bar_width = 20;
         let pct = if total > 0 { (alive as f32 / total as f32) * 100.0 } else { 0.0 };
         let filled = (pct / 100.0 * bar_width as f32) as usize;

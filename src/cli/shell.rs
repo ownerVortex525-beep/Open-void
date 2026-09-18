@@ -13,7 +13,7 @@ const TEAL: (u8, u8, u8) = (38, 166, 154);
 const AZURE: (u8, u8, u8) = (42, 157, 223);
 const CRIMSON: (u8, u8, u8) = (220, 50, 47);
 const YELLOW: (u8, u8, u8) = (255, 193, 7);
-const GREEN: (u8, u8, u8) = (0, 200, 83);
+
 
 fn tc(s: &str, (r, g, b): (u8, u8, u8)) -> String {
     format!("\x1B[38;2;{};{};{}m{}\x1B[0m", r, g, b, s)
@@ -114,6 +114,37 @@ fn process_shell_command(input: &str) {
             }
             run_tool_command(args_str);
         }
+        "recon" | "r" => {
+            if args_str.is_empty() {
+                banner::error("Usage: recon <domain/ip>");
+                banner::info("Commands: subdomain <domain> | dns <domain> | ping <host> | iplookup <ip>");
+                banner::info("          netscan <cidr> | ports <host> | services <host> | whois <domain>");
+                banner::info("          headers <url> | techstack <url>");
+                return;
+            }
+            let parts2: Vec<&str> = args_str.split_whitespace().collect();
+            let (subcmd, target) = (parts2[0], parts2.get(1).unwrap_or(&""));
+            match subcmd {
+                "subdomain" | "subs" | "sub" => run_tool_command(&format!("--subdomain-brute --target {}", target)),
+                "dns" => run_tool_command(&format!("--osint-subdomains --target {}", target)),
+                "ping" => run_system_command(&format!("ping -c 4 {}", target)),
+                "iplookup" | "ipinfo" => {
+                    let result = std::process::Command::new("curl")
+                        .arg("-s").arg(format!("https://ipapi.co/{}/json/", target))
+                        .output();
+                    if let Ok(o) = result {
+                        println!("{}", String::from_utf8_lossy(&o.stdout));
+                    }
+                }
+                "netscan" | "scan-net" => run_tool_command(&format!("--subnet-scan --target {}", target)),
+                "ports" => run_tool_command(&format!("--ports quick --target {}", target)),
+                "services" => run_tool_command(&format!("--banner-grab --target {}", target)),
+                "whois" => run_system_command(&format!("whois {}", target)),
+                "headers" => run_system_command(&format!("curl -sI {}", target)),
+                "techstack" => run_system_command(&format!("whatweb -v {}", target)),
+                _ => run_tool_command(args_str),
+            }
+        }
         "crack" | "c" => {
             if args_str.is_empty() {
                 banner::error("Usage: crack --crack-hash <hash> --hash-type md5");
@@ -143,6 +174,39 @@ fn process_shell_command(input: &str) {
             }
         }
         "sessions" | "session" => run_tool_command("--sessions"),
+        "phish" | "phishing" => {
+            let parts: Vec<&str> = args_str.split_whitespace().collect();
+            if parts.is_empty() {
+                banner::error("Usage: phish serve <template> [--local <port>] [--tunnel <type>]");
+                return;
+            }
+            match parts.get(1) {
+                Some(&"serve") | Some(&"s") => {
+                    let template = parts.get(2).map(|s| s.to_string()).unwrap_or("login".to_string());
+                    let port = 8080;
+                    let mut server = crate::phishing::PhishingServer::new("0.0.0.0", port, &template);
+                    if parts.iter().any(|&p| p == "--local") {
+                        // local only
+                    }
+                    for (i, p) in parts.iter().enumerate() {
+                        if *p == "--tunnel" && i + 1 < parts.len() {
+                            server = server.with_tunnel(parts[i + 1]);
+                        }
+                    }
+                    let _ = server.start();
+                }
+                _ => {
+                    banner::error("Usage: phish serve <template> [--local <port>] [--tunnel <type>]");
+                }
+            }
+        }
+        "serve" => {
+            let parts: Vec<&str> = args_str.split_whitespace().collect();
+            let template = parts.first().map(|s| s.to_string()).unwrap_or("login".to_string());
+            let port: u16 = parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(8080);
+            let server = crate::phishing::PhishingServer::new("0.0.0.0", port, &template);
+            let _ = server.start();
+        }
         "tui" => {
             if let Err(e) = crate::cli::tui::run_tui() {
                 banner::error(&format!("TUI error: {}", e));
@@ -151,6 +215,13 @@ fn process_shell_command(input: &str) {
         "banner" => print_shell_banner(),
         "stats" => banner::print_stats(),
         "modules" | "mod" => banner::print_module_list(),
+        "list-templates" | "templates" => {
+            crate::phishing::PhishingGen::list_templates();
+            crate::phishing::list_email_templates();
+        }
+        "list-emails" | "emails" => {
+            crate::phishing::list_email_templates();
+        }
         "clear" | "cls" => {
             print!("\x1B[2J\x1B[1;1H");
             io::stdout().flush().unwrap_or(());
@@ -216,39 +287,46 @@ fn handle_ai_command_string(args: &str) {
     }
 
     let subcommand = parts[0].to_lowercase();
-    let handle = tokio::runtime::Handle::current();
 
     match subcommand.as_str() {
         "menu" => {
             std::thread::spawn(move || {
-                handle.block_on(async {
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                rt.block_on(async {
                     crate::ai::start_interactive_ai_menu().await;
                 });
             }).join().unwrap_or(());
         }
         "config" => {
-            let _ = handle.block_on(async {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async {
                 crate::ai::config::AiConfig::show_config_menu().await;
             });
         }
         "attack" => {
             if parts.len() < 3 {
-                banner::error("Usage: ai attack <url> <provider>");
-                banner::info("Example: ai attack https://example.com openai");
+                banner::error("Usage: ai attack <url> [provider]");
+                banner::info("Example: ai attack https://example.com cerebras");
                 return;
             }
-            let url = parts[1];
-            let provider = parts.get(2).map(|s| s.to_lowercase()).unwrap_or_else(|| "openai".to_string());
-            let _ = handle.block_on(async {
-                let mut cli_args = crate::cli::args::CliArgs::default();
-                cli_args.url = Some(url.to_string());
-                cli_args.ai = true;
-                crate::core::engine::run_ai_attack_with_provider(&cli_args, &provider).await;
-            });
+            let url = parts[1].to_string();
+            let provider = parts.get(2).map(|s| s.to_lowercase()).unwrap_or_else(|| "cerebras".to_string());
+            
+            banner::info("Starting AI attack...");
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                rt.block_on(async {
+                    let mut cli_args = crate::cli::args::CliArgs::default();
+                    cli_args.url = Some(url);
+                    cli_args.ai = true;
+                    crate::core::engine::run_ai_attack_with_provider(&cli_args, &provider).await;
+                });
+            }).join().unwrap_or(());
         }
         "chat" => {
             banner::info("AI Chat mode - type 'exit' to quit");
-            let _ = handle.block_on(async {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async {
                 crate::ai::start_chat_mode().await;
             });
         }
@@ -260,7 +338,8 @@ fn handle_ai_command_string(args: &str) {
         }
         "chain" => {
             banner::info("AI Custom Attack Chain Builder");
-            let _ = handle.block_on(async {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async {
                 crate::ai::start_chain_builder().await;
             });
         }

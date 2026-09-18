@@ -30,7 +30,7 @@ pub struct DeviceStats {
 
 impl DeviceStats {
     pub fn new() -> Self {
-        let mut sys = sysinfo::System::new_all();
+        let sys = sysinfo::System::new_all();
         sysinfo::set_open_files_limit(isize::MAX);
 
         let platform = if cfg!(target_os = "android") || std::env::var("ANDROID_ROOT").is_ok() {
@@ -88,7 +88,7 @@ impl DeviceStats {
         self.cpu_percent = total_cpu / self._sys.cpus().len().max(1) as f32;
 
         // Disk info
-        let mut disks = sysinfo::Disks::new_with_refreshed_list();
+        let disks = sysinfo::Disks::new_with_refreshed_list();
         if let Some(disk) = disks.iter().next() {
             let total = disk.total_space();
             let available = disk.available_space();

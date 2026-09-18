@@ -91,7 +91,7 @@ impl Platform {
     }
 
     pub fn print_banner_message(&self) {
-        let color = self.color();
+        let _color = self.color();
         let name = self.name();
         match self {
             Platform::Termux => {

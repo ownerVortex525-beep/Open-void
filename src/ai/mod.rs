@@ -16,12 +16,12 @@ pub use engine::{AiEngine, ReconResult, AttackPlan, AttackStep, StepResult, Step
 pub use logs::{AiLogger, AiLogEntry, LogLevel};
 
 use crate::cli::banner;
-use std::io::{self, Write};
+
 
 pub async fn start_interactive_ai_menu() {
     let t = crate::cli::banner::TEAL;
     let g = crate::cli::banner::GOLD;
-    let az = crate::cli::banner::AZURE;
+    let _az = crate::cli::banner::AZURE;
 
     println!();
     println!("{}  AI POWERS", crate::cli::banner::tc("▐", g));
@@ -48,7 +48,7 @@ pub async fn start_interactive_ai_menu() {
 
 pub async fn show_ai_attack_workspace() {
     let g = crate::cli::banner::GOLD;
-    let t = crate::cli::banner::TEAL;
+    let _t = crate::cli::banner::TEAL;
     let az = crate::cli::banner::AZURE;
 
     println!();
@@ -151,6 +151,7 @@ pub async fn start_chain_builder() {
 pub fn list_providers() {
     crate::cli::banner::info("Available AI Providers:");
     let providers = [
+        ("Cerebras", "Llama-3.3-70B (Default)"),
         ("OpenAI", "GPT-4o, GPT-4-turbo"),
         ("Anthropic", "Claude-3-Opus, Claude-3.5-Sonnet"),
         ("Gemini", "Gemini-2.0-flash, Gemini-1.5-pro"),

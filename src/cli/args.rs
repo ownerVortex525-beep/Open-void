@@ -468,8 +468,11 @@ pub struct CliArgs {
     #[arg(long, help = "List all modules")]
     pub list_modules: bool,
 
-    #[arg(long, help = "Stealth mode")]
+    #[arg(long, help = "Stealth mode - undetectable payloads")]
     pub stealth: bool,
+
+    #[arg(num_args = 0..)]
+    pub extra_args: Vec<String>,
 }
 
 impl CliArgs {

@@ -97,7 +97,7 @@ pub struct FindingAnalysis {
 
 impl AiEngine {
     pub fn new(config: AiConfig) -> Result<Self, reqwest::Error> {
-        let mut builder = reqwest::Client::builder()
+        let builder = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(60));
 
         // Add proxy if configured

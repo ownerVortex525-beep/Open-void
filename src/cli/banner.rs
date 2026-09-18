@@ -58,7 +58,7 @@ pub fn print_banner() {
 pub fn print_cfvoid_banner() {
     let cr = CRIMSON;
     let g = GOLD;
-    let t = TEAL;
+    let _t = TEAL;
     let az = AZURE;
 
     println!();
@@ -68,74 +68,23 @@ pub fn print_cfvoid_banner() {
     std::io::stdout().flush().ok();
     std::thread::sleep(Duration::from_millis(50));
 
-    // Portrait CF-VOID ASCII Art (tall and narrow, ~35 columns wide)
-    // C (CRIMSON)
-    let c_lines: Vec<&str> = vec![
-        "   ██████╗ ██╗   ██╗███████╗██████╗",
-        "  ██╔════╝ ██║   ██║██╔════╝██╔══██╗",
-        "  ██║  ███╗██║   ██║█████╗  ██████╔╝",
-        "  ██║   ██║██║   ██║██╔══╝  ██╔══██╗",
-        "  ╚██████╔╝╚██████╔╝███████╗██║  ██║",
-        "   ╚═════╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝",
+    // Compact CF-VOID ASCII Art (from ascii-text-art.txt)
+    let banner_lines = [
+        "  ____ _____          __     _____ ___ ____  ",
+        " / ___|  ___|         \\ \\   / / _ \\_ _|  _ \\ ",
+        "| |   | |_     _____   \\ \\ / /| | | | || | | |",
+        "| |___|  _|   |_____|   \\ V / | |_| | || |_| |",
+        " \\____|_|                \\_/  \\___/___|____/ ",
     ];
-    for line in c_lines {
+
+    for line in banner_lines {
         println!("\x1B[38;2;{};{};{}m{}\x1B[0m", cr.0, cr.1, cr.2, line);
     }
 
-    std::thread::sleep(Duration::from_millis(50));
-    std::io::stdout().flush().ok();
-
-    // V (TEAL)
-    let v_lines: Vec<&str> = vec![
-        "  ▐█   ▐█   ▐█ ▐█   ▐█",
-        "   ▐█  ▐█   ▐█ ▐█  ▐█",
-        "    ▐█ ▐█   █  ██ ▐█",
-        "     █ ▐█   █  █ ▐█",
-        "    ▐█  ▐█ ██   ▐█",
-        "   ▐█    ▐██    █",
-        "   █      ▀     ▐",
-    ];
-    for line in v_lines {
-        println!("\x1B[38;2;{};{};{}m  {}\x1B[0m", t.0, t.1, t.2, line);
-    }
-
-    std::thread::sleep(Duration::from_millis(50));
-    std::io::stdout().flush().ok();
-
-    // O (GOLD)
-    let o_lines: Vec<&str> = vec![
-        "  ██████╗  ██████╗",
-        " ██╔═══██╗██╔═══██╗",
-        " ██║   ██║██║   ██║",
-        " ██║   ██║██║   ██║",
-        " ╚██████╔╝╚██████╔╝",
-        "  ╚═════╝  ╚═════╝",
-    ];
-    for line in o_lines {
-        println!("\x1B[38;2;{};{};{}m{}\x1B[0m", g.0, g.1, g.2, line);
-    }
-
-    std::thread::sleep(Duration::from_millis(50));
-    std::io::stdout().flush().ok();
-
-    // I D (TEAL)
-    let id_portrait: Vec<&str> = vec![
-        "  ██████╗ ██╗  ████████╗",
-        "  ██╔══██╗██║  ╚══██╔══╝",
-        "  ██║  ██║██║     ██║",
-        "  ██║  ██║██║     ██║",
-        "  ██║  ██║██║     ██║",
-        "  ██████╔╝██║     ██║",
-        "  ╚═════╝ ╚═╝     ╚═╝",
-    ];
-    for line in id_portrait {
-        println!("\x1B[38;2;{};{};{}m{}\x1B[0m", t.0, t.1, t.2, line);
-    }
-
     std::io::stdout().flush().ok();
     std::thread::sleep(Duration::from_millis(50));
 
-    // Compact legal disclaimer (single line)
+    // Compact legal disclaimer (one line)
     println!();
     println!("\x1B[1m\x1B[38;2;{};{};{}m  ⚠ Authorized penetration testing only. Use with written permission.\x1B[0m", g.0, g.1, g.2);
     println!("\x1B[38;2;{};{};{}m  Built by IND 'CYBER-FORCE' :: Offensive Security Platform\x1B[0m", az.0, az.1, az.2);
@@ -146,7 +95,7 @@ pub fn print_cfvoid_banner() {
 pub fn print_scan_header(target: &str, modules: &[&str]) {
     let g = GOLD;
     let t = TEAL;
-    let az = AZURE;
+    let _az = AZURE;
 
     println!();
     println!("{}  ▐━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━▌{}", tc("▐", g), "\x1B[0m");
@@ -280,7 +229,7 @@ pub fn shell_obtained(shell_type: &str, connection: &str) {
 }
 
 pub fn print_complete(duration: &str, findings: usize, requests: usize) {
-    let g = GOLD;
+    let _g = GOLD;
     let t = TEAL;
 
     println!();
@@ -295,7 +244,7 @@ pub fn print_complete(duration: &str, findings: usize, requests: usize) {
     println!();
 }
 
-pub fn print_progress(current: usize, total: usize, msg: &str) {
+pub fn print_progress(current: usize, total: usize, _msg: &str) {
     let pct = if total > 0 { (current as f64 / total as f64 * 100.0) as usize } else { 0 };
     let bar_width = 20;
     let filled = if total > 0 { (current as f64 / total as f64 * bar_width as f64) as usize } else { 0 };
@@ -400,9 +349,9 @@ pub fn print_watermark() {
 }
 
 pub fn print_stats() {
-    let g = GOLD;
+    let _g = GOLD;
     let cr = CRIMSON;
-    let t = TEAL;
+    let _t = TEAL;
 
     println!();
     println!("  {}", tc("▐═══✦═══════════════════════════════════════════════════════✦═══▌", cr));
@@ -430,7 +379,7 @@ pub fn print_report_saved(path: &str) {
 pub fn print_module_list() {
     let g = GOLD;
     let az = AZURE;
-    let t = TEAL;
+    let _t = TEAL;
 
     println!();
     println!("{}───▄▀▀▀▄▄▄▄▄▄▄▀▀▀▄───{}", tc("▐", g), "\x1B[0m");

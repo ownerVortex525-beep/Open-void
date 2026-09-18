@@ -2,7 +2,7 @@ use crate::cli::banner;
 use crate::utils::log::{LiveLogger};
 use std::io::{Read, Write, BufRead, BufReader};
 use std::net::{TcpStream, TcpListener};
-use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::collections::HashMap;
@@ -352,7 +352,7 @@ impl PortForwarder {
             for stream in listener.incoming() {
                 if let Ok(stream) = stream {
                     match TcpStream::connect(format!("{}:{}", rhost_owned, rport_owned)) {
-                        Ok(mut remote) => {
+                        Ok(remote) => {
                             logger().success(&format!("Forward {}: connection established", f_id));
                             
                             // Bidirectional pipe

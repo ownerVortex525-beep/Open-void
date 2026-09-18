@@ -92,7 +92,7 @@ impl AiLogger {
         self.write_log(LogLevel::Attack, Some(module.to_string()), &message).await
     }
 
-    async fn write_log(&self, level: LogLevel, module: Option<String>, message: &str) -> anyhow::Result<()> {
+    async fn write_log(&self, level: LogLevel, _module: Option<String>, message: &str) -> anyhow::Result<()> {
         let timestamp = chrono::Local::now().format("%H:%M:%S").to_string();
         let line = format!("[{}] {} {}\n", timestamp, level.prefix(), message);
 

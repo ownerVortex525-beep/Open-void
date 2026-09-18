@@ -3,10 +3,7 @@ pub mod parameter;
 pub mod js_crawler;
 
 use crate::cli::banner;
-use std::sync::Arc;
-use tokio::sync::Mutex;
 use crate::http::client::HttpClient;
-use crate::core::finding::Finding;
 
 pub struct FuzzResult {
     pub target: String,

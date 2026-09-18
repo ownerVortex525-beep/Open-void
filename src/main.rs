@@ -12,7 +12,7 @@ fn print_proxy_bar(current: usize, total: usize) {
     let filled = if total > 0 { (current as f32 / total as f32 * bar_width as f32) as usize } else { 0 };
     let empty = bar_width - filled;
     let bar = format!("{}{}", "█".repeat(filled), "▱".repeat(empty));
-    let pct = if total > 0 { (current * 100 / total) } else { 0 };
+    let pct = if total > 0 { current * 100 / total } else { 0 };
     let g = (218, 165, 32);
     print!("\r\x1B[38;2;{};{};{}m  {} {}% ({} of {}) sources...\x1B[0m",
         g.0, g.1, g.2, bar, pct, current, total);
@@ -35,7 +35,10 @@ async fn main() {
         process::exit(0);
     }
 
-    if !args.quiet {
+    // Skip banner for utility/listing commands
+    let skip_banner = args.list_modules || args.list_templates || args.list_emails || args.phish_template.is_some();
+    
+    if !args.quiet && !skip_banner {
         banner::print_banner();
         cfvoid::utils::platform::print_platform_info();
     }
@@ -54,12 +57,6 @@ async fn main() {
         let lhost = args.lhost.as_deref().unwrap_or("127.0.0.1");
         let lport = args.lport.as_deref().unwrap_or("8080");
         cfvoid::phishing::PhishingGen::new().generate(template, lhost, lport, args.output.as_deref());
-        process::exit(0);
-    }
-
-    if args.list_templates {
-        cfvoid::phishing::PhishingGen::list_templates();
-        cfvoid::phishing::list_email_templates();
         process::exit(0);
     }
 
@@ -137,7 +134,7 @@ async fn main() {
         println!();
 
         scraper.test_all(50).await;
-        let (total_count, alive, dead) = scraper.stats();
+        let (_total_count, alive, dead) = scraper.stats();
         banner::success(&format!("Alive: {} | Dead: {}", alive, dead));
 
         for proxy in scraper.alive_proxies.iter().take(20) {

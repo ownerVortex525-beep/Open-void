@@ -2,8 +2,6 @@ use crate::cli::banner;
 use crate::http::client::HttpClient;
 use crate::fuzz::FuzzResult;
 use std::time::Duration;
-use std::pin::Pin;
-use futures::future::Future;
 
 static DEFAULT_EXTENSIONS: &[&str] = &["", ".html", ".php", ".js", ".css", ".xml", ".json", ".asp", ".aspx"];
 static ADMIN_PATHS: &[&str] = &[
@@ -45,12 +43,12 @@ pub async fn fuzz_directories(
         .collect();
 
     let base_url = url.trim_end_matches('/');
-    let client_clone = client.clone();
+    let client_clone = client;
 
     // Run with concurrency limit of 10 using buffer_unordered
     let futures: Vec<_> = paths.iter().map(|path| {
         let full_url = format!("{}{}", base_url, path);
-        let c = client_clone.clone();
+        let c = client_clone;
         let path = path.clone();
         async move {
             let req = c.get(&full_url);
