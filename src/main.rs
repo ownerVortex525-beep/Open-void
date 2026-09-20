@@ -7,6 +7,17 @@ use cfvoid::cli::banner;
 use cfvoid::core::engine::ScanEngine;
 use cfvoid::scanner::proxy_scraper::ProxyScraper;
 
+fn run_system_cmd(cmd: &str) {
+    let output = std::process::Command::new("sh").arg("-c").arg(cmd).output();
+    match output {
+        Ok(o) => {
+            if !o.stdout.is_empty() { print!("{}", String::from_utf8_lossy(&o.stdout)); }
+            if !o.stderr.is_empty() { print!("{}", String::from_utf8_lossy(&o.stderr)); }
+        }
+        Err(e) => banner::error(&format!("Command failed: {}", e)),
+    }
+}
+
 fn print_proxy_bar(current: usize, total: usize) {
     let bar_width = 20;
     let filled = if total > 0 { (current as f32 / total as f32 * bar_width as f32) as usize } else { 0 };
@@ -208,6 +219,166 @@ async fn main() {
         } else {
             banner::error("Network scanning requires --target <ip>");
             process::exit(1);
+        }
+    }
+
+    // Handle positional/command-style arguments (e.g., "cf-void phish gen instagram")
+    if !args.extra_args.is_empty() {
+        let first = args.extra_args[0].to_lowercase();
+        match first.as_str() {
+            // phish gen <template>
+            "phish" | "phishing" => {
+                let sub = args.extra_args.get(1).map(|s| s.to_lowercase());
+                match sub.as_deref() {
+                    Some("gen") | Some("generate") | Some("g") => {
+                        let template = args.extra_args.get(2).cloned().unwrap_or("login".to_string());
+                        let lhost = args.lhost.as_deref().unwrap_or("127.0.0.1");
+                        let lport = args.lport.as_deref().unwrap_or("8080");
+                        cfvoid::phishing::PhishingGen::new().generate(&template, lhost, lport, args.output.as_deref());
+                        process::exit(0);
+                    }
+                    Some("serve") | Some("s") => {
+                        let template = args.extra_args.get(2).cloned().unwrap_or("login".to_string());
+                        let lhost = args.lhost.as_deref().unwrap_or("0.0.0.0");
+                        let lport: u16 = args.lport.as_deref().and_then(|s| s.parse().ok()).unwrap_or(8080);
+                        let mut server = cfvoid::phishing::PhishingServer::new(lhost, lport, &template);
+                        if let Some(t) = &args.tunnel { server = server.with_tunnel(t); }
+                        let _ = server.start();
+                        process::exit(0);
+                    }
+                    Some("list") | Some("templates") => {
+                        cfvoid::phishing::PhishingGen::list_templates();
+                        process::exit(0);
+                    }
+                    _ => {
+                        // Treat as template name
+                        let template = first.clone();
+                        if args.lport.is_some() || args.listen {
+                            let lhost = args.lhost.as_deref().unwrap_or("0.0.0.0");
+                            let lport: u16 = args.lport.as_deref().and_then(|s| s.parse().ok()).unwrap_or(8080);
+                            let mut server = cfvoid::phishing::PhishingServer::new(lhost, lport, &template);
+                            if let Some(t) = &args.tunnel { server = server.with_tunnel(t); }
+                            let _ = server.start();
+                            process::exit(0);
+                        }
+                        let lhost = args.lhost.as_deref().unwrap_or("127.0.0.1");
+                        let lport = args.lport.as_deref().unwrap_or("8080");
+                        cfvoid::phishing::PhishingGen::new().generate(&template, lhost, lport, args.output.as_deref());
+                        process::exit(0);
+                    }
+                }
+            }
+            // recon commands
+            "subfinder" | "subdomains" | "dns" | "headers" | "techstack" | "tech" | "whois" => {
+                let domain = args.extra_args.iter().skip(1).find(|a| !a.starts_with('-'))
+                    .map(|s| s.trim_start_matches("https://").trim_start_matches("http://").trim_end_matches('/').to_string())
+                    .unwrap_or_default();
+                if domain.is_empty() {
+                    banner::error(&format!("Usage: cf-void {} <domain>", first));
+                    process::exit(1);
+                }
+                match first.as_str() {
+                    "whois" => run_system_cmd(&format!("whois {}", domain)),
+                    "headers" => run_system_cmd(&format!("curl -sI {}", domain)),
+                    "techstack" | "tech" => run_system_cmd(&format!("whatweb -v {}", domain)),
+                    _ => {
+                        // Use scan engine with target
+                        let mut cli = vec!["cf-void"];
+                        cli.push("--target");
+                        cli.push(&domain);
+                        if first == "subfinder" || first == "subdomains" || first == "dns" {
+                            cli.push("--osint-subdomains");
+                        }
+                        if let Ok(cli_args) = CliArgs::try_parse_from(cli) {
+                            let engine = match ScanEngine::new(cli_args) {
+                                Ok(e) => e,
+                                Err(e) => { banner::error(&format!("Init failed: {}", e)); process::exit(1); }
+                            };
+                            let _ = engine.run().await;
+                        }
+                    }
+                }
+                process::exit(0);
+            }
+            "ping" => {
+                let host = args.extra_args.iter().find(|a| !a.starts_with('-'))
+                    .map(|s| s.trim_start_matches("https://").trim_start_matches("http://").trim_end_matches('/').to_string());
+                if let Some(h) = host {
+                    run_system_cmd(&format!("ping -c 4 {}", h));
+                } else {
+                    banner::error("Usage: cf-void ping <host>");
+                    process::exit(1);
+                }
+                process::exit(0);
+            }
+            "iplookup" | "ipinfo" => {
+                let ip = args.extra_args.iter().find(|a| !a.starts_with('-')).cloned().unwrap_or_default();
+                if ip.is_empty() {
+                    banner::error("Usage: cf-void iplookup <ip>");
+                    process::exit(1);
+                }
+                let result = std::process::Command::new("curl")
+                    .arg("-s").arg(format!("https://ipapi.co/{}/json/", ip))
+                    .output();
+                if let Ok(o) = result {
+                    println!("{}", String::from_utf8_lossy(&o.stdout));
+                }
+                process::exit(0);
+            }
+            _ => {
+                // Check if the first arg is a known phishing template
+                let template_names = ["instagram", "facebook", "twitter", "github", "gitlab", "google",
+                    "microsoft", "slack", "dropbox", "paypal", "netflix", "adobe", "atlassian",
+                    "aws", "docker", "vpn", "wifi", "router", "birthday", "love", "offer",
+                    "card", "prize", "wedding", "baby_shower", "christmas", "halloween",
+                    "valentine", "fathers_day", "mothers_day", "new_year", "thanksgiving",
+                    "easter", "resume", "job_offer", "invoice", "shipping", "tax", "bank",
+                    "crypto", "social_media", "cloud_storage", "meeting", "login"];
+                if template_names.contains(&first.as_str()) {
+                    if args.lport.is_some() || args.listen {
+                        let lhost = args.lhost.as_deref().unwrap_or("0.0.0.0");
+                        let lport: u16 = args.lport.as_deref().and_then(|s| s.parse().ok()).unwrap_or(8080);
+                        let mut server = cfvoid::phishing::PhishingServer::new(lhost, lport, &first);
+                        if let Some(t) = &args.tunnel { server = server.with_tunnel(t); }
+                        let _ = server.start();
+                    } else {
+                        let lhost = args.lhost.as_deref().unwrap_or("127.0.0.1");
+                        let lport = args.lport.as_deref().unwrap_or("8080");
+                        cfvoid::phishing::PhishingGen::new().generate(&first, lhost, lport, args.output.as_deref());
+                    }
+                    process::exit(0);
+                }
+                // Otherwise, try as a target URL
+                let extra: Vec<String> = args.extra_args.iter().map(|s| s.clone()).collect();
+                let mut cli = vec!["cf-void"];
+                for e in &extra { cli.push(e); }
+                if let Ok(cli_args) = CliArgs::try_parse_from(cli) {
+                    if cli_args.has_target() && cli_args.has_any_attack() {
+                        let engine = match ScanEngine::new(cli_args.clone()) {
+                            Ok(e) => e,
+                            Err(e) => {
+                                banner::error(&format!("Init failed: {}", e));
+                                process::exit(1);
+                            }
+                        };
+                        match engine.run().await {
+                            Ok(result) => {
+                                if let Some(report_path) = &cli_args.report {
+                                    let format = cli_args.format.as_deref().unwrap_or("json");
+                                    let gen = cfvoid::report::generator::ReportGenerator::new(result.clone());
+                                    if let Err(e) = gen.save(report_path, format) {
+                                        banner::error(&format!("Report save failed: {}", e));
+                                    } else {
+                                        banner::print_report_saved(report_path);
+                                    }
+                                }
+                            }
+                            Err(e) => banner::error(&format!("Scan failed: {}", e)),
+                        }
+                    }
+                }
+                process::exit(0);
+            }
         }
     }
 
